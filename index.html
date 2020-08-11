@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>airQ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="flex.css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3"></script>
+  <script src="data.js"></script>
+</head>
+<body>
+<div class="flex row wrap">
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="healthPerformance"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="temperatureDewpt"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="tvoc"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="humidity"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="sound"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="pressure"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="o2co2"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="fine-dust"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="o3no2"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="coso2"></canvas></div>
+</div>
+<div id="overlay" class="overlay hidden">
+  <div id="overlay-inner" class="overlay-inner" onclick="event.stopPropagation()">
+  </div>
+</div>
+<script>
+const chartConfigs = {};
+
+data.timestamp = data.timestamp.map(ts => new Date(ts));
+const overlay = document.getElementById("overlay");
+const overlayInner = document.getElementById("overlay-inner");
+
+overlay.onclick = () => {
+  overlayInner.innerHTML = "";
+  overlay.classList.add("hidden")
+}
+for (const e of document.getElementsByClassName("zoom")) {
+  e.onclick = () => {
+    const canvas = document.createElement("canvas");
+    overlayInner.appendChild(canvas);
+    new Chart(canvas, chartConfigs[e.id]);
+    overlay.classList.remove("hidden");
+  }
+}
+
+function makeGraph(obj) {
+  const id = obj.id;
+  const axes = obj.axes;
+  const left = obj.left || [];
+  const right = obj.right || [];
+  const ctx = document.getElementById(id);
+
+  const rightUsed = axes.some(([l, d, c, axisId]) => axisId === "right");
+  const config = {
+    type: 'line',
+    data: {
+      labels: data.timestamp,
+      datasets: axes.map(([label, data, color, yAxisID]) => {return {
+        label: label,
+        data: data,
+        fill: false,
+        pointRadius: 1.5,
+        borderColor: color,
+        yAxisID: yAxisID,
+      }}),
+    },
+    options: {
+      responsive: true,
+      tooltips: {
+        mode: 'index'
+      },
+      scales: {
+        xAxes: [{
+          type: 'time',
+          time: {
+            unit: 'hour',
+            displayFormats: {
+              hour: 'MMM D hA',
+            },
+            parser: "MM/DD/YYYY HH:mm",
+            // round: 'day'
+            tooltipFormat: 'll HH:mm',
+          },
+          scaleLabel: {
+            display: true,
+            labelString: 'Date'
+          },
+        }],
+        yAxes: [{
+          id: "left",
+          type: 'linear',
+          display: true,
+          position: "left",
+          ticks: {
+            min: left[0],
+            max: left[1],
+          },
+        }],
+      },
+    },
+  };
+  if (rightUsed) {
+    config.options.scales.yAxes.push({
+      id: "right",
+      type: 'linear',
+      display: true,
+      position: "right",
+      ticks: {
+        min: right[0],
+        max: right[1],
+      },
+    });
+  }
+  new Chart(ctx, config);
+  chartConfigs[id] = config;
+}
+
+makeGraph({
+  id: "healthPerformance",
+  axes: [
+    ["health", data.health, "green"],
+    ["performance", data.performance, "blue"],
+  ],
+  left: [0, 1000],
+  right: [0, 1000],
+});
+makeGraph({
+  id: "temperatureDewpt",
+  axes: [
+    ["temperature (°C)", data.temperature, "red"],
+    ["dew point (°C)", data.dewpt, "blue"],
+  ],
+  left: [10, 40],
+});
+makeGraph({
+  id: "tvoc",
+  axes: [
+    ["VOCs (ppb)", data.tvoc, "black"],
+  ],
+  // left: [0, 500],
+});
+makeGraph({
+  id: "humidity",
+  axes: [
+    ["Humidity (%)", data.humidity, "deepskyblue", "left"],
+    ["Humidity (g/m³)", data.humidity_abs, "blue", "right"],
+  ]
+});
+makeGraph({
+  id: "sound",
+  axes: [
+    ["Sound (dB(A))", data.sound, "red"],
+  ],
+});
+makeGraph({
+  id: "pressure",
+  axes: [
+    ["Pressue (hPa)", data.pressure, "#368BC1"],
+  ],
+});
+makeGraph({
+  id: "o2co2",
+  axes: [
+    ["CO₂ (ppm)", data.co2, "darkslateblue", "left"],
+    ["O₂ (%)", data.oxygen, "lightblue", "right"],
+  ],
+});
+makeGraph({
+  id: "fine-dust",
+  axes: [
+    ["PM 1 (μg/m³)", data.pm1, "darkgray"],
+    ["PM 2.5 (μg/m³)", data.pm2_5, "gray"],
+    ["PM 10 (μg/m³)", data.pm10, "dimgray"],
+  ],
+});
+makeGraph({
+  id: "o3no2",
+  axes: [
+    ["O₃ (μg/m³)", data.o3, "red", "left"],
+    ["NO₂ (μg/m³)", data.no2, "coral", "left"],
+  ],
+});
+makeGraph({
+  id: "coso2",
+  axes: [
+    ["CO (mg/m³)", data.co, "olive", "left"],
+    ["SO₂ (μg/m³)", data.so2, "gold", "right"],
+  ],
+  right: [0, 500],
+});
+</script>
+</body>
+</html>
+
+
