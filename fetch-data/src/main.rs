@@ -2,14 +2,20 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::collections::{HashMap, HashSet};
 
-use serde::{Serialize, Deserialize};
-
 use airq::{AirQ, Data11, Data14};
+use serde::Deserialize;
+use clap::Clap;
 
 #[derive(Deserialize)]
 struct Config {
     ip: String,
     password: String,
+}
+
+#[derive(Clap)]
+enum Args {
+    Server,
+    FetchData,
 }
 
 fn main() {
@@ -25,7 +31,7 @@ fn main() {
 
     // panic!();
 
-    let mut data: Vec<_> = airq.dirbuff().unwrap()
+    let mut data: Vec<_> = airq.dirbuff().unwrap().into_iter()
         .inspect(|file| println!("{}", file.path()))
         .flat_map(|file| airq.file_recrypt_data_14(&file.path()).unwrap())
         .collect();

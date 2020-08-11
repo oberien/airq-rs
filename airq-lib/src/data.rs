@@ -16,7 +16,7 @@ pub struct DeviceId {
     pub id: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Deserialize)]
 pub struct FilePath {
     pub year: u16,
     pub month: u8,

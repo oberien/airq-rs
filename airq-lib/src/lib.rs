@@ -78,7 +78,7 @@ impl AirQ {
         self.decrypt(&self.request::<Encrypted>("/config")?.content)
     }
     pub fn ping(&self) -> Result<Value> {
-        let Encrypted { deviceid, content } = self.request("/ping")?;
+        let Encrypted { deviceid: _, content } = self.request("/ping")?;
         self.decrypt(&content)
     }
     pub fn standardpass(&self) -> Result<bool> {
@@ -87,9 +87,9 @@ impl AirQ {
     pub fn dir(&self, path: &str) -> Result<Vec<String>> {
         self.decrypt(&self.request_raw(&format!("/dir?request={}", self.encrypt(path.as_bytes())?))?)
     }
-    pub fn dirbuff(&self) -> Result<impl Iterator<Item = FilePath>> {
+    pub fn dirbuff(&self) -> Result<Vec<FilePath>> {
         let files: HashMap<String, HashMap<String, HashMap<String, Vec<String>>>> = self.decrypt(&self.request_raw("/dirbuff")?)?;
-        Ok(files.into_iter().flat_map(|(year, months)| {
+        let mut files: Vec<_> = files.into_iter().flat_map(|(year, months)| {
             let year = year.parse().unwrap();
             months.into_iter().flat_map(move |(month, days)| {
                 let month = month.parse().unwrap();
@@ -105,7 +105,9 @@ impl AirQ {
                     })
                 })
             })
-        }))
+        }).collect();
+        files.sort();
+        Ok(files)
     }
     pub fn file_data_11(&self, path: &str) -> Result<Vec<Data11>> {
         self.file_raw(path)
