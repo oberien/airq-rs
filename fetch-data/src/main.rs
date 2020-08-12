@@ -1,6 +1,4 @@
-use std::fs::{self, File};
-use std::io::Write;
-use std::collections::HashMap;
+use std::fs;
 
 use airq::{AirQ, Data11, Data14, FilePath};
 use serde::Deserialize;
@@ -12,7 +10,7 @@ struct Config {
     password: String,
 }
 
-#[async_std::main]
+#[tokio::main]
 async fn main() -> Result<(), sqlx::Error> {
     let config = fs::read_to_string("Airq.toml").expect("Airq.toml config file not found");
     let config: Config = toml::from_str(&config).expect("Error parsing Airq.toml config file");
@@ -40,16 +38,16 @@ async fn main() -> Result<(), sqlx::Error> {
         .fetch_optional(&pg_pool).await?
         .map(|record| record.timestamp.unwrap() as u64);
 
-    let mut files = airq.dirbuff().unwrap();
+    let mut files = airq.dirbuff().await.unwrap();
     files.retain(|file| Some(file) >= last_dbfile.as_ref());
 
-    let mut data: Vec<_> = files.into_iter()
-        .inspect(|file| println!("{}", file.path()))
-        .flat_map(|file| {
-            let entries = airq.file_recrypt_data_14(&file.path()).unwrap();
-            entries.into_iter()
-                .map(move |val| (file.clone(), val))
-        }).collect();
+    let mut data = Vec::new();
+    for file in files {
+        println!("{}", file.path());
+        for entry in airq.file_recrypt_data_14(&file.path()).await.unwrap() {
+            data.push((file.clone(), entry));
+        }
+    }
     data.sort_by_key(|(_, entry)| entry.data11.timestamp);
 
     for (file, entry) in data {

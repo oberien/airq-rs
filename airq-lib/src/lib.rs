@@ -1,11 +1,17 @@
+#[cfg(feature = "blocking")]
 use std::time::{Instant, Duration};
+#[cfg(feature = "blocking")]
 use std::thread;
+#[cfg(feature = "blocking")]
 use std::marker::PhantomData;
 use std::collections::HashMap;
 
 use serde::de::DeserializeOwned;
 use serde_json::Value;
+#[cfg(feature = "blocking")]
 use reqwest::blocking::Client;
+#[cfg(not(feature = "blocking"))]
+use reqwest::Client;
 use block_modes::{BlockMode, Cbc, block_padding::Pkcs7};
 use aes::Aes256;
 
@@ -35,37 +41,74 @@ impl AirQ {
         }
     }
 
+    #[cfg(not(feature = "blocking"))]
+    async fn request_raw(&self, path: &str) -> Result<String> {
+        Ok(self.client.get(&format!("{}{}", self.prefix, path))
+            .send().await?
+            .text().await?)
+    }
+    #[cfg(feature = "blocking")]
     fn request_raw(&self, path: &str) -> Result<String> {
         Ok(self.client.get(&format!("{}{}", self.prefix, path))
             .send()?
             .text()?)
     }
+    #[cfg(not(feature = "blocking"))]
+    async fn request<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
+        Ok(self.client.get(&format!("{}{}", self.prefix, path))
+            .send().await?
+            .json().await?)
+    }
+    #[cfg(feature = "blocking")]
     fn request<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
         Ok(self.client.get(&format!("{}{}", self.prefix, path))
             .send()?
             .json()?)
     }
 
+    #[cfg(not(feature = "blocking"))]
+    pub async fn blink(&self) -> Result<DeviceId> {
+        self.request("/blink").await
+    }
+    #[cfg(feature = "blocking")]
     pub fn blink(&self) -> Result<DeviceId> {
         self.request("/blink")
     }
 
+    #[cfg(not(feature = "blocking"))]
+    pub async fn data_11(&self) -> Result<Data14> {
+        self.data_raw().await
+    }
+    #[cfg(feature = "blocking")]
     pub fn data_11(&self) -> Result<Data14> {
         self.data_raw()
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn data_14(&self) -> Result<Data14> {
+        self.data_raw().await
+    }
+    #[cfg(feature = "blocking")]
     pub fn data_14(&self) -> Result<Data14> {
         self.data_raw()
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn data_raw<T: DeserializeOwned>(&self) -> Result<T> {
+        self.decrypt(&self.request::<Encrypted>("/data").await?.content)
+    }
+    #[cfg(feature = "blocking")]
     pub fn data_raw<T: DeserializeOwned>(&self) -> Result<T> {
         self.decrypt(&self.request::<Encrypted>("/data")?.content)
     }
 
+    #[cfg(feature = "blocking")]
     pub fn live_data_11(&self) -> Live<Data11> {
         self.live_data_raw()
     }
+    #[cfg(feature = "blocking")]
     pub fn live_data_14(&self) -> Live<Data14> {
         self.live_data_raw()
     }
+    #[cfg(feature = "blocking")]
     pub fn live_data_raw<T: DeserializeOwned>(&self) -> Live<T> {
         Live {
             last_request: Instant::now() - Duration::from_millis(2000),
@@ -74,21 +117,52 @@ impl AirQ {
         }
     }
 
+    #[cfg(not(feature = "blocking"))]
+    pub async fn config(&self) -> Result<Value> {
+        self.decrypt(&self.request::<Encrypted>("/config").await?.content)
+    }
+    #[cfg(feature = "blocking")]
     pub fn config(&self) -> Result<Value> {
         self.decrypt(&self.request::<Encrypted>("/config")?.content)
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn ping(&self) -> Result<Value> {
+        let Encrypted { deviceid: _, content } = self.request("/ping").await?;
+        self.decrypt(&content)
+    }
+    #[cfg(feature = "blocking")]
     pub fn ping(&self) -> Result<Value> {
         let Encrypted { deviceid: _, content } = self.request("/ping")?;
         self.decrypt(&content)
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn standardpass(&self) -> Result<bool> {
+        self.request("/standardpass").await
+    }
+    #[cfg(feature = "blocking")]
     pub fn standardpass(&self) -> Result<bool> {
         self.request("/standardpass")
     }
+
+    #[cfg(not(feature = "blocking"))]
+    pub async fn dir(&self, path: &str) -> Result<Vec<String>> {
+        self.decrypt(&self.request_raw(&format!("/dir?request={}", self.encrypt(path.as_bytes())?)).await?)
+    }
+    #[cfg(feature = "blocking")]
     pub fn dir(&self, path: &str) -> Result<Vec<String>> {
         self.decrypt(&self.request_raw(&format!("/dir?request={}", self.encrypt(path.as_bytes())?))?)
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn dirbuff(&self) -> Result<Vec<FilePath>> {
+        let files: HashMap<String, HashMap<String, HashMap<String, Vec<String>>>> = self.decrypt(&self.request_raw("/dirbuff").await?)?;
+        Ok(Self::aggregate_dirbuff(files))
+    }
+    #[cfg(feature = "blocking")]
     pub fn dirbuff(&self) -> Result<Vec<FilePath>> {
         let files: HashMap<String, HashMap<String, HashMap<String, Vec<String>>>> = self.decrypt(&self.request_raw("/dirbuff")?)?;
+        Ok(Self::aggregate_dirbuff(files))
+    }
+    fn aggregate_dirbuff(files: HashMap<String, HashMap<String, HashMap<String, Vec<String>>>>) -> Vec<FilePath> {
         let mut files: Vec<_> = files.into_iter().flat_map(|(year, months)| {
             let year = year.parse().unwrap();
             months.into_iter().flat_map(move |(month, days)| {
@@ -107,34 +181,71 @@ impl AirQ {
             })
         }).collect();
         files.sort();
-        Ok(files)
+       files
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn file_data_11(&self, path: &str) -> Result<Vec<Data11>> {
+        self.file_raw(path).await
+    }
+    #[cfg(feature = "blocking")]
     pub fn file_data_11(&self, path: &str) -> Result<Vec<Data11>> {
         self.file_raw(path)
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn file_data_14(&self, path: &str) -> Result<Vec<Data14>> {
+        self.file_raw(path).await
+    }
+    #[cfg(feature = "blocking")]
     pub fn file_data_14(&self, path: &str) -> Result<Vec<Data14>> {
         self.file_raw(path)
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn file_raw<T: DeserializeOwned>(&self, path: &str) -> Result<Vec<T>> {
+        let lines = self.request_raw(&format!("/file?request={}", self.encrypt(path.as_bytes())?)).await?;
+        self.aggregate_lines(lines)
+    }
+    #[cfg(feature = "blocking")]
     pub fn file_raw<T: DeserializeOwned>(&self, path: &str) -> Result<Vec<T>> {
         let lines = self.request_raw(&format!("/file?request={}", self.encrypt(path.as_bytes())?))?;
+        self.aggregate_lines(lines)
+    }
+    fn aggregate_lines<T: DeserializeOwned>(&self, lines: String) -> Result<Vec<T>> {
         lines.lines()
             .filter(|line| !line.is_empty())
             .map(|line| self.decrypt(line))
             .collect()
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn file_recrypt_data_11(&self, path: &str) -> Result<Vec<Data11>> {
+        self.file_recrypt_raw(path).await
+    }
+    #[cfg(feature = "blocking")]
     pub fn file_recrypt_data_11(&self, path: &str) -> Result<Vec<Data11>> {
         self.file_recrypt_raw(path)
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn file_recrypt_data_14(&self, path: &str) -> Result<Vec<Data14>> {
+        self.file_recrypt_raw(path).await
+    }
+    #[cfg(feature = "blocking")]
     pub fn file_recrypt_data_14(&self, path: &str) -> Result<Vec<Data14>> {
         self.file_recrypt_raw(path)
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn file_recrypt_raw<T: DeserializeOwned>(&self, path: &str) -> Result<Vec<T>> {
+        let lines = self.request_raw(&format!("/file_recrypt?request={}", self.encrypt(path.as_bytes())?)).await?;
+        self.aggregate_lines(lines)
+    }
+    #[cfg(feature = "blocking")]
     pub fn file_recrypt_raw<T: DeserializeOwned>(&self, path: &str) -> Result<Vec<T>> {
         let lines = self.request_raw(&format!("/file_recrypt?request={}", self.encrypt(path.as_bytes())?))?;
-        lines.lines()
-            .filter(|line| !line.is_empty())
-            .map(|line| self.decrypt(line))
-            .collect()
+        self.aggregate_lines(lines)
     }
+    #[cfg(not(feature = "blocking"))]
+    pub async fn log(&self) -> Result<Vec<String>> {
+        self.decrypt(&self.request::<Encrypted>("/log").await?.content)
+    }
+    #[cfg(feature = "blocking")]
     pub fn log(&self) -> Result<Vec<String>> {
         self.decrypt(&self.request::<Encrypted>("/log")?.content)
     }
@@ -161,12 +272,14 @@ impl AirQ {
     }
 }
 
+#[cfg(feature = "blocking")]
 pub struct Live<'a, T: DeserializeOwned> {
     last_request: Instant,
     airq: &'a AirQ,
     _marker: PhantomData<T>,
 }
 
+#[cfg(feature = "blocking")]
 impl<'a, T: DeserializeOwned> Iterator for Live<'a, T> {
     type Item = Result<T>;
 
