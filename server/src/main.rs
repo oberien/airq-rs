@@ -48,15 +48,15 @@ async fn data(pool: State<'_, PgPool>) -> Result<String> {
     Ok(format!("{:#?}", data[0]))
 }
 
-fn create_pool() -> Result<PgPool> {
+async fn create_pool() -> Result<PgPool> {
     Ok(PgPoolOptions::new()
         .max_connections(8)
-        .connect_lazy(env!("DATABASE_URL"))?)
+        .connect(env!("DATABASE_URL")).await?)
 }
 
 #[rocket::launch]
 async fn rocket() -> rocket::Rocket {
     rocket::ignite()
-        .manage(create_pool().unwrap())
+        .manage(create_pool().await.unwrap())
         .mount("/", rocket::routes![hello, data])
 }
