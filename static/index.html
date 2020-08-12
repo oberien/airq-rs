@@ -12,6 +12,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3"></script>
 </head>
 <body>
+<div>
+  <input id="24h" type="button" value="24h" />
+  <input id="48h" type="button" value="48h" />
+  <input id="All" type="button" value="All" />
+</div>
 <div class="flex row wrap">
   <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="healthPerformance"></canvas></div>
   <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="temperatureDewpt"></canvas></div>
@@ -47,6 +52,40 @@ for (const e of document.getElementsByClassName("zoom")) {
   }
 }
 
+document.getElementById("24h").onclick = get24h;
+document.getElementById("48h").onclick = get48h;
+document.getElementById("All").onclick = getAll;
+
+get24h();
+
+function get(path, callback) {
+  const xhr = new XMLHttpRequest();
+  xhr.onload = callback;
+  xhr.open("GET", path);
+  xhr.send();
+}
+function getData(from, to) {
+  get("/data/" + from + "/" + to, gotData);
+}
+function get24h() {
+  const now = Date.now();
+  const before = now - 24 * 3600 * 1000;
+  getData(before, now);
+}
+function get48h() {
+  const now = Date.now();
+  const before = now - 48 * 3600 * 1000;
+  getData(before, now);
+}
+function getAll() {
+  get("/timestamps", gotTimestamps);
+}
+function gotTimestamps() {
+  window.timestamps = JSON.parse(this.response);
+  getData(timestamps.first, timestamps.last);
+}
+
+
 function makeGraph(obj) {
   const id = obj.id;
   const axes = obj.axes;
@@ -71,7 +110,18 @@ function makeGraph(obj) {
     options: {
       responsive: true,
       tooltips: {
-        mode: 'index'
+        mode: 'index',
+        callbacks: {
+          label: function(tooltipItem, data) {
+            let label = data.datasets[tooltipItem.datasetIndex].label || '';
+
+            if (label) {
+              label += ': ';
+            }
+            label += tooltipItem.yLabel.toFixed(2);
+            return label;
+          }
+        },
       },
       scales: {
         xAxes: [{
@@ -118,11 +168,6 @@ function makeGraph(obj) {
   new Chart(ctx, config);
   chartConfigs[id] = config;
 }
-
-const xhr = new XMLHttpRequest();
-xhr.onload = gotData;
-xhr.open("GET", "/data");
-xhr.send();
 
 function gotData() {
   window.data = JSON.parse(this.responseText);
