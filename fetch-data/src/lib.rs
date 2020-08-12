@@ -41,14 +41,14 @@ pub async fn fetch_data() -> Result<(), Error> {
                 AND measurements.file = files.id;
             "#,
         ).fetch_optional(&pg_pool);
-    let last_dbtimestamp_future = sqlx::query!(r#"SELECT max(timestamp) as "timestamp!" FROM measurements;"#)
+    let last_dbtimestamp_future = sqlx::query!(r#"SELECT max(timestamp) as "timestamp" FROM measurements;"#)
         .fetch_optional(&pg_pool);
     let files_future = airq.dirbuff();
 
     let (last_dbfile, last_dbtimestamp, files) = futures::join!(last_dbfile_future, last_dbtimestamp_future, files_future);
     let last_dbfile = last_dbfile?
         .map(|file| FilePath { year: file.year as u16, month: file.month as u8, day: file.day as u8, timestamp: file.timestamp as u64 });
-    let last_dbtimestamp = last_dbtimestamp?.map(|record| record.timestamp as u64);
+    let last_dbtimestamp = last_dbtimestamp?.map(|record| record.timestamp.unwrap_or_default() as u64);
     let mut files = files?;
 
     files.retain(|file| Some(file) >= last_dbfile.as_ref());

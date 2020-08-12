@@ -13,6 +13,9 @@
 </head>
 <body>
 <div>
+  <input id="4h" type="button" value="4h" />
+  <input id="8h" type="button" value="8h" />
+  <input id="16h" type="button" value="16h" />
   <input id="24h" type="button" value="24h" />
   <input id="48h" type="button" value="48h" />
   <input id="All" type="button" value="All" />
@@ -52,11 +55,14 @@ for (const e of document.getElementsByClassName("zoom")) {
   }
 }
 
-document.getElementById("24h").onclick = get24h;
-document.getElementById("48h").onclick = get48h;
+document.getElementById("4h").onclick = () => getMinus(4*3600*1000);
+document.getElementById("8h").onclick = () => getMinus(8*3600*1000);
+document.getElementById("16h").onclick = () => getMinus(16*3600*1000);
+document.getElementById("24h").onclick = () => getMinus(24*3600*1000);
+document.getElementById("48h").onclick = () => getMinus(48*3600*1000);
 document.getElementById("All").onclick = getAll;
 
-get24h();
+getMinus(24*3600*1000);
 
 function get(path, callback) {
   const xhr = new XMLHttpRequest();
@@ -67,14 +73,9 @@ function get(path, callback) {
 function getData(from, to) {
   get("/data/" + from + "/" + to, gotData);
 }
-function get24h() {
+function getMinus(minus) {
   const now = Date.now();
-  const before = now - 24 * 3600 * 1000;
-  getData(before, now);
-}
-function get48h() {
-  const now = Date.now();
-  const before = now - 48 * 3600 * 1000;
+  const before = now - minus;
   getData(before, now);
 }
 function getAll() {
