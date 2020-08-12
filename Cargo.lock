@@ -394,9 +394,11 @@ name = "fetch-data"
 version = "0.1.0"
 dependencies = [
  "airq",
+ "futures",
  "serde",
  "serde_json",
  "sqlx",
+ "thiserror",
  "tokio",
  "toml",
 ]
@@ -1334,6 +1336,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocket_contrib"
+version = "0.5.0-dev"
+source = "git+https://github.com/SergioBenitez/Rocket#549c9241c41320fc5af76b53c2ffc3bd8db88f8c"
+dependencies = [
+ "log",
+ "rocket",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "rocket_http"
 version = "0.5.0-dev"
 source = "git+https://github.com/SergioBenitez/Rocket#549c9241c41320fc5af76b53c2ffc3bd8db88f8c"
@@ -1471,7 +1485,11 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "airq",
+ "fetch-data",
+ "futures",
  "rocket",
+ "rocket_contrib",
+ "serde",
  "sqlx",
  "tokio",
 ]

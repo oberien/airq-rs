@@ -10,7 +10,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3"></script>
-  <script src="data.js"></script>
 </head>
 <body>
 <div class="flex row wrap">
@@ -32,7 +31,6 @@
 <script>
 const chartConfigs = {};
 
-data.timestamp = data.timestamp.map(ts => new Date(ts));
 const overlay = document.getElementById("overlay");
 const overlayInner = document.getElementById("overlay-inner");
 
@@ -60,7 +58,7 @@ function makeGraph(obj) {
   const config = {
     type: 'line',
     data: {
-      labels: data.timestamp,
+      labels: window.data.timestamp,
       datasets: axes.map(([label, data, color, yAxisID]) => {return {
         label: label,
         data: data,
@@ -121,79 +119,88 @@ function makeGraph(obj) {
   chartConfigs[id] = config;
 }
 
-makeGraph({
-  id: "healthPerformance",
-  axes: [
-    ["health", data.health, "green"],
-    ["performance", data.performance, "blue"],
-  ],
-  left: [0, 1000],
-  right: [0, 1000],
-});
-makeGraph({
-  id: "temperatureDewpt",
-  axes: [
-    ["temperature (°C)", data.temperature, "red"],
-    ["dew point (°C)", data.dewpt, "blue"],
-  ],
-  left: [10, 40],
-});
-makeGraph({
-  id: "tvoc",
-  axes: [
-    ["VOCs (ppb)", data.tvoc, "black"],
-  ],
-  // left: [0, 500],
-});
-makeGraph({
-  id: "humidity",
-  axes: [
-    ["Humidity (%)", data.humidity, "deepskyblue", "left"],
-    ["Humidity (g/m³)", data.humidity_abs, "blue", "right"],
-  ]
-});
-makeGraph({
-  id: "sound",
-  axes: [
-    ["Sound (dB(A))", data.sound, "red"],
-  ],
-});
-makeGraph({
-  id: "pressure",
-  axes: [
-    ["Pressue (hPa)", data.pressure, "#368BC1"],
-  ],
-});
-makeGraph({
-  id: "o2co2",
-  axes: [
-    ["CO₂ (ppm)", data.co2, "darkslateblue", "left"],
-    ["O₂ (%)", data.oxygen, "lightblue", "right"],
-  ],
-});
-makeGraph({
-  id: "fine-dust",
-  axes: [
-    ["PM 1 (μg/m³)", data.pm1, "darkgray"],
-    ["PM 2.5 (μg/m³)", data.pm2_5, "gray"],
-    ["PM 10 (μg/m³)", data.pm10, "dimgray"],
-  ],
-});
-makeGraph({
-  id: "o3no2",
-  axes: [
-    ["O₃ (μg/m³)", data.o3, "red", "left"],
-    ["NO₂ (μg/m³)", data.no2, "coral", "left"],
-  ],
-});
-makeGraph({
-  id: "coso2",
-  axes: [
-    ["CO (mg/m³)", data.co, "olive", "left"],
-    ["SO₂ (μg/m³)", data.so2, "gold", "right"],
-  ],
-  right: [0, 500],
-});
+const xhr = new XMLHttpRequest();
+xhr.onload = gotData;
+xhr.open("GET", "/data");
+xhr.send();
+
+function gotData() {
+  window.data = JSON.parse(this.responseText);
+
+  makeGraph({
+    id: "healthPerformance",
+    axes: [
+      ["health", window.data.health, "green"],
+      ["performance", window.data.performance, "blue"],
+    ],
+    left: [0, 1000],
+    right: [0, 1000],
+  });
+  makeGraph({
+    id: "temperatureDewpt",
+    axes: [
+      ["temperature (°C)", window.data.temperature, "red"],
+      ["dew point (°C)", window.data.dewpt, "blue"],
+    ],
+    left: [10, 40],
+  });
+  makeGraph({
+    id: "tvoc",
+    axes: [
+      ["VOCs (ppb)", window.data.tvoc, "black"],
+    ],
+    // left: [0, 500],
+  });
+  makeGraph({
+    id: "humidity",
+    axes: [
+      ["Humidity (%)", window.data.humidity, "deepskyblue", "left"],
+      ["Humidity (g/m³)", window.data.humidity_abs, "blue", "right"],
+    ]
+  });
+  makeGraph({
+    id: "sound",
+    axes: [
+      ["Sound (dB(A))", window.data.sound, "red"],
+    ],
+  });
+  makeGraph({
+    id: "pressure",
+    axes: [
+      ["Pressue (hPa)", window.data.pressure, "#368BC1"],
+    ],
+  });
+  makeGraph({
+    id: "o2co2",
+    axes: [
+      ["CO₂ (ppm)", window.data.co2, "darkslateblue", "left"],
+      ["O₂ (%)", window.data.oxygen, "lightblue", "right"],
+    ],
+  });
+  makeGraph({
+    id: "fine-dust",
+    axes: [
+      ["PM 1 (μg/m³)", window.data.pm1, "darkgray"],
+      ["PM 2.5 (μg/m³)", window.data.pm2_5, "gray"],
+      ["PM 10 (μg/m³)", window.data.pm10, "dimgray"],
+    ],
+  });
+  makeGraph({
+    id: "o3no2",
+    axes: [
+      ["O₃ (μg/m³)", window.data.o3, "red", "left"],
+      ["NO₂ (μg/m³)", window.data.no2, "coral", "left"],
+    ],
+  });
+  makeGraph({
+    id: "coso2",
+    axes: [
+      ["CO (mg/m³)", window.data.co, "olive", "left"],
+      ["SO₂ (μg/m³)", window.data.so2, "gold", "right"],
+    ],
+    right: [0, 500],
+  });
+}
 </script>
 </body>
 </html>
