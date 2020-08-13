@@ -49,12 +49,12 @@ async fn timestamps(pool: State<'_, PgPool>) -> Result<Json<Timestamps>> {
     ).fetch_one(&*pool).await?))
 }
 
-const MAX_DATAPOINTS: u64 = 1000;
+const MAX_DATAPOINTS: u64 = 500;
 
 #[rocket::get("/data/<first>/<last>")]
 async fn data(pool: State<'_, PgPool>, first: u64, last: u64) -> Result<Json<HashMap<&'static str, Vec<f64>>>> {
     let num_measurements = (last - first) / (2 * 60 * 1000);
-    let combine_datapoints = (num_measurements + MAX_DATAPOINTS) / MAX_DATAPOINTS + 1;
+    let combine_datapoints = (num_measurements + MAX_DATAPOINTS) / MAX_DATAPOINTS;
     let combine_millis = combine_datapoints * 2 * 60 * 1000;
     println!("{}, {}, {}", num_measurements, combine_datapoints, combine_millis);
 
