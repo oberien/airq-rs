@@ -171,8 +171,7 @@ function makeGraph(obj) {
       },
     });
   }
-  const chart = new Chart(ctx, config);
-  charts[id] = chart;
+  charts[id] = new Chart(ctx, config);
   chartConfigs[id] = config;
 }
 
@@ -250,7 +249,6 @@ function gotData() {
       ["CO (mg/m³)", window.data.co, "olive", "left"],
       ["SO₂ (μg/m³)", window.data.so2, "gold", "right"],
     ],
-    right: [0, 500],
   });
 }
 </script>
