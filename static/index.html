@@ -38,6 +38,7 @@
 </div>
 <script>
 const chartConfigs = {};
+const charts = {};
 
 const overlay = document.getElementById("overlay");
 const overlayInner = document.getElementById("overlay-inner");
@@ -93,6 +94,10 @@ function makeGraph(obj) {
   const left = obj.left || [];
   const right = obj.right || [];
   const ctx = document.getElementById(id);
+
+  if (charts[id] != undefined) {
+    charts[id].destroy();
+  }
 
   const rightUsed = axes.some(([l, d, c, axisId]) => axisId === "right");
   const config = {
@@ -166,7 +171,8 @@ function makeGraph(obj) {
       },
     });
   }
-  new Chart(ctx, config);
+  const chart = new Chart(ctx, config);
+  charts[id] = chart;
   chartConfigs[id] = config;
 }
 
