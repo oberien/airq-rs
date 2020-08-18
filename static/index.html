@@ -10,8 +10,40 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tinycolor2@1.4.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tinygradient@1.1.2"></script>
 </head>
 <body>
+<div>
+  <table>
+    <tr>
+      <th align="left">Parameter</th>
+      <th>Value</th>
+      <th>CAQI-Level</th>
+    </tr>
+    <tr><td>Time of Measurement</td><td style="text-align: center" id="timestamp"></td><td id="caqitimestamp"></td></tr>
+    <tr><td>Uptime</td><td style="text-align: center" id="uptime"></td><td id="caqiuptime"></td></tr>
+    <tr><td>Status</td><td style="text-align: center" id="Status"></td><td id="caqiStatus"></td></tr>
+    <tr><td>Health</td><td style="text-align: center" id="health"></td><td id="caqihealth"></td></tr>
+    <tr><td>Performance</td><td style="text-align: center" id="performance"></td><td id="caqiperformance"></td></tr>
+    <tr><td>Temperature (°C)</td><td style="text-align: center" id="temperature"></td><td id="caqitemperature"></td></tr>
+    <tr><td>Dew Point (°C)</td><td style="text-align: center" id="dewpt"></td><td id="caqidewpt"></td></tr>
+    <tr><td>VOCs (ppb)</td><td style="text-align: center" id="tvoc"></td><td id="caqitvoc"></td></tr>
+    <tr><td>Humidity (%)</td><td style="text-align: center" id="humidity"></td><td id="caqihumidity"></td></tr>
+    <tr><td>Humidity (g/m³)</td><td style="text-align: center" id="humidity_abs"></td><td id="caqihumidity_abs"></td></tr>
+    <tr><td>Sound (dB(A))</td><td style="text-align: center" id="sound"></td><td id="caqisound"></td></tr>
+    <tr><td>Pressue (hPa)</td><td style="text-align: center" id="pressure"></td><td id="caqipressure"></td></tr>
+    <tr><td>CO₂ (ppm)</td><td style="text-align: center" id="co2"></td><td id="caqico2"></td></tr>
+    <tr><td>O₂ (%)</td><td style="text-align: center" id="oxygen"></td><td id="caqioxygen"></td></tr>
+    <tr><td>PM 1 (μg/m³)</td><td style="text-align: center" id="pm1"></td><td id="caqipm1"></td></tr>
+    <tr><td>PM 2.5 (μg/m³)</td><td style="text-align: center" id="pm2_5"></td><td id="caqipm2_5"></td></tr>
+    <tr><td>PM 10 (μg/m³)</td><td style="text-align: center" id="pm10"></td><td id="caqipm10"></td></tr>
+    <tr><td>O₃ (μg/m³)</td><td style="text-align: center" id="o3"></td><td id="caqio3"></td></tr>
+    <tr><td>NO₂ (μg/m³)</td><td style="text-align: center" id="no2"></td><td id="caqino2"></td></tr>
+    <tr><td>CO (mg/m³)</td><td style="text-align: center" id="co"></td><td id="caqico"></td></tr>
+    <tr><td>SO₂ (μg/m³)</td><td style="text-align: center" id="so2"></td><td id="caqiso2"></td></tr>
+  </table>
+</div>
 <div>
   <input id="4h" type="button" value="4h" />
   <input id="8h" type="button" value="8h" />
@@ -21,22 +53,182 @@
   <input id="All" type="button" value="All" />
 </div>
 <div class="flex row wrap">
-  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="healthPerformance"></canvas></div>
-  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="temperatureDewpt"></canvas></div>
-  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="tvoc"></canvas></div>
-  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="humidity"></canvas></div>
-  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="sound"></canvas></div>
-  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="pressure"></canvas></div>
-  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="o2co2"></canvas></div>
-  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="fine-dust"></canvas></div>
-  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="o3no2"></canvas></div>
-  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="coso2"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="graphHealthPerformance"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="graphTemperatureDewpt"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="graphTvoc"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="graphHumidity"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="graphSound"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="graphPressure"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="graphO2co2"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="graphFineDust"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="graphO3no2"></canvas></div>
+  <div class="flex-100 xs-flex-100 sm-flex-50 md-flex-33 l-flex-33 xl-flex-33 xxl-flex-25"><canvas class="zoom" id="graphCoso2"></canvas></div>
 </div>
 <div id="overlay" class="overlay hidden">
   <div id="overlay-inner" class="overlay-inner" onclick="event.stopPropagation()">
   </div>
 </div>
 <script>
+// util
+function get(path, callback) {
+  const xhr = new XMLHttpRequest();
+  xhr.onload = function() { callback(JSON.parse(this.responseText)) };
+  xhr.open("GET", path);
+  xhr.send();
+}
+function secs2dhms(secs) {
+  const DAY = 24 * 60 * 60, HOUR = 60 * 60, MINUTE = 60;
+  let d = Math.floor(secs / DAY);
+  let h = Math.floor(secs % DAY / HOUR);
+  let m = Math.floor(secs % HOUR / MINUTE);
+  let s = Math.floor(secs % MINUTE);
+
+  d = d > 0 ? d + "d ": "";
+  h = h > 0 ? h + "h " : "";
+  m = m > 0 ? m + "m " : "";
+  s = s > 0 ? s + "s" : "";
+  return d + h + m + s;
+}
+function formatTs(timestamp) {
+  const date = new Date(timestamp);
+  return date.toISOString().replace("T", " ").split(".")[0];
+}
+window.gradient = tinygradient([
+  '#008800',
+  '#e69500',
+  '#ff0000',
+]);
+function hsl(value, limits) {
+  if (limits == null || limits.length === 0) {
+    return "black";
+  }
+  let compare = (a,b) => a > b;
+  if (Array.isArray(limits[0])) {
+    // value should be between limits[0]-last and limits[1]-first
+    let smaller = limits[0];
+    let greater = limits[1];
+    if (value > smaller[smaller.length - 1]) {
+      limits = greater;
+    } else {
+      limits = smaller.reverse();
+      compare = (a,b) => a < b;
+    }
+  }
+
+  let i = 0;
+  while (limits.length > i && compare(value, limits[i])) {
+    i += 1;
+  }
+  // scale to steps
+  const step = i / limits.length;
+  return gradient.rgbAt(step);
+}
+// modified from https://www.dropbox.com/sh/sqa5bxnjrypnyku/AABKHYAHVEYBwtpnGC8plKypa?dl=0&preview=values.html
+function caqi(prop, value, limits) {
+  if (!Array.isArray(limits) || limits.length !== 4) {
+    return;
+  }
+  const element = document.getElementById("caqi" + prop);
+  // http://www.airqualitynow.eu/download/CITEAIR-Comparing_Urban_Air_Quality_across_Borders.pdf
+  if (value < limits[0]) {
+    element.style.backgroundColor='#79bc6a';
+    element.style.color='#000000';
+    element.innerHTML = '<span style="font-weight: bold;">&nbsp;Very low:&nbsp;'+ ((25/limits[0]) * value).toFixed(0) + '&nbsp;</span>';
+  } else if (value < limits[1]) {
+    element.style.backgroundColor='#bbcf4c';
+    element.style.color='#000000';
+    element.innerHTML = '<span style="font-weight: bold;">&nbsp;Low:&nbsp;'+ ((25/(limits[1]-limits[0])) * (value-limits[0]) + 25).toFixed(0) + '&nbsp;</span>';
+  } else if (value < limits[2]) {
+    element.style.backgroundColor='#eec20b';
+    element.style.color='#000000';
+    element.innerHTML = '<span style="font-weight: bold;">&nbsp;Middle:&nbsp;'+ ((25/(limits[2]-limits[1])) * (value-limits[1]) + 50).toFixed(0) + '&nbsp;</span>';
+  } else if (value < limits[3]) {
+    element.style.backgroundColor='#f29305';
+    element.style.color='#000000';
+    element.innerHTML = '<span style="font-weight: bold;">&nbsp;High:&nbsp;'+ ((25/(limits[3]-limits[2])) * (value-limits[2]) + 75).toFixed(0) + '&nbsp;</span>';
+  } else {
+    element.style.backgroundColor='#96001b';
+    element.style.color='#ffffff';
+    element.innerHTML = '<span style="font-weight: bold;">&nbsp;Very high:&nbsp;'+ ((25/(limits[3]-limits[2])) * (value-limits[2]) + 100).toFixed(0) + '&nbsp;</span>';
+  }
+}
+
+// current data
+
+setInterval(getCurrent, 2000)
+function getCurrent() {
+  get("/data/current", (res) => {
+    const measurements = [
+      // name,                prop,           airqQuality,                caqi-level,          conversionFunction
+      ["Time of Measurement", "timestamp",    [],                         [],                  formatTs],
+      ["Uptime",              "uptime",       [],                         [],                  secs2dhms],
+      ["Status",              "Status",       [],                         []],
+      ["Health",              "health",       [],                         []],
+      ["Performance",         "performance",  [],                         []],
+      ["Temperature (°C)",    "temperature",  [[20], [26]],               []],
+      ["Dew Point (°C)",      "dewpt",        [[9], [15]],                []],
+      ["VOCs (ppb)",          "tvoc",         [400, 1300, 4000],          []],
+      ["Humidity (%)",        "humidity",     [[40], [60]],               []],
+      ["Humidity (g/m³)",     "humidity_abs", [[6.9], [10.4]],            []],
+      ["Sound (dB(A))",       "sound",        [65],                       []],
+      ["Pressue (hPa)",       "pressure",     [[730, 900], [1050, 1100]], []],
+      ["CO₂ (ppm)",           "co2",          [1000, 1500, 5000],         []],
+      ["O₂ (%)",              "oxygen",       [[16], [110]],              []],
+      ["PM 1 (μg/m³)",        "pm1",          [10, 20, 50],               []],
+      ["PM 2.5 (μg/m³)",      "pm2_5",        [25, 50],                   [10, 20, 30, 60]],
+      ["PM 10 (μg/m³)",       "pm10",         [25, 40, 50],               [15, 30, 50, 100]],
+      ["O₃ (μg/m³)",          "o3",           [120, 180, 240],            [60, 120, 180, 240]],
+      ["NO₂ (μg/m³)",         "no2",          [80, 250],                  [50, 100, 200, 400]],
+      ["CO (mg/m³)",          "co",           [10, 25, 35, 85],           []],
+      ["SO₂ (μg/m³)",         "so2",          [350, 500],                 [50, 100, 350, 500]],
+    ];
+
+    if (res == undefined) {
+      return
+    }
+
+    for ([name, prop, airqQuality, caqiQuality, convertFunction] of measurements) {
+      if (res[prop] == undefined) {
+        continue;
+      }
+      let value = res[prop];
+      if (convertFunction != undefined) {
+        value = convertFunction(value);
+      }
+      const element = document.getElementById(prop);
+      let val;
+      let lower = undefined;
+      let higher = undefined;
+      if (Array.isArray(value)) {
+        const [v, div] = value;
+        val = v;
+        lower = val * (1 - div/100);
+        higher = val * (1 + div/100);
+      } else {
+        val = value;
+      }
+
+      const color = hsl(val, airqQuality);
+      let html = "";
+      if (lower !== undefined) {
+        html += lower.toFixed(2) + " - ";
+      }
+      if (typeof(val) === "number") {
+        html += "<span style='color:" + color + "; font-weight: bold;'>" + val.toFixed(2) + "</span>";
+      } else {
+        html += val || "-";
+      }
+      if (higher !== undefined) {
+        html += " - " + higher.toFixed(2);
+      }
+      element.innerHTML = html;
+
+      caqi(prop, val, caqiQuality);
+    }
+  });
+}
+
+// charts
 const chartConfigs = {};
 const charts = {};
 
@@ -65,12 +257,6 @@ document.getElementById("All").onclick = getAll;
 
 getMinus(24*3600*1000);
 
-function get(path, callback) {
-  const xhr = new XMLHttpRequest();
-  xhr.onload = callback;
-  xhr.open("GET", path);
-  xhr.send();
-}
 function getData(from, to) {
   get("/data/" + from + "/" + to, gotData);
 }
@@ -82,8 +268,8 @@ function getMinus(minus) {
 function getAll() {
   get("/timestamps", gotTimestamps);
 }
-function gotTimestamps() {
-  window.timestamps = JSON.parse(this.response);
+function gotTimestamps(response) {
+  window.timestamps = response;
   getData(timestamps.first, timestamps.last);
 }
 
@@ -175,11 +361,11 @@ function makeGraph(obj) {
   chartConfigs[id] = config;
 }
 
-function gotData() {
-  window.data = JSON.parse(this.responseText);
+function gotData(response) {
+  window.data = response;
 
   makeGraph({
-    id: "healthPerformance",
+    id: "graphHealthPerformance",
     axes: [
       ["health", window.data.health, "green"],
       ["performance", window.data.performance, "blue"],
@@ -188,7 +374,7 @@ function gotData() {
     right: [0, 1000],
   });
   makeGraph({
-    id: "temperatureDewpt",
+    id: "graphTemperatureDewpt",
     axes: [
       ["temperature (°C)", window.data.temperature, "red"],
       ["dew point (°C)", window.data.dewpt, "blue"],
@@ -196,40 +382,40 @@ function gotData() {
     left: [10, 40],
   });
   makeGraph({
-    id: "tvoc",
+    id: "graphTvoc",
     axes: [
       ["VOCs (ppb)", window.data.tvoc, "black"],
     ],
     // left: [0, 500],
   });
   makeGraph({
-    id: "humidity",
+    id: "graphHumidity",
     axes: [
       ["Humidity (%)", window.data.humidity, "deepskyblue", "left"],
       ["Humidity (g/m³)", window.data.humidity_abs, "blue", "right"],
     ]
   });
   makeGraph({
-    id: "sound",
+    id: "graphSound",
     axes: [
       ["Sound (dB(A))", window.data.sound, "red"],
     ],
   });
   makeGraph({
-    id: "pressure",
+    id: "graphPressure",
     axes: [
       ["Pressue (hPa)", window.data.pressure, "#368BC1"],
     ],
   });
   makeGraph({
-    id: "o2co2",
+    id: "graphO2co2",
     axes: [
       ["CO₂ (ppm)", window.data.co2, "darkslateblue", "left"],
       ["O₂ (%)", window.data.oxygen, "lightblue", "right"],
     ],
   });
   makeGraph({
-    id: "fine-dust",
+    id: "graphFineDust",
     axes: [
       ["PM 1 (μg/m³)", window.data.pm1, "darkgray"],
       ["PM 2.5 (μg/m³)", window.data.pm2_5, "gray"],
@@ -237,14 +423,14 @@ function gotData() {
     ],
   });
   makeGraph({
-    id: "o3no2",
+    id: "graphO3no2",
     axes: [
       ["O₃ (μg/m³)", window.data.o3, "red", "left"],
       ["NO₂ (μg/m³)", window.data.no2, "coral", "left"],
     ],
   });
   makeGraph({
-    id: "coso2",
+    id: "graphCoso2",
     axes: [
       ["CO (mg/m³)", window.data.co, "olive", "left"],
       ["SO₂ (μg/m³)", window.data.so2, "gold", "right"],
@@ -254,5 +440,3 @@ function gotData() {
 </script>
 </body>
 </html>
-
-

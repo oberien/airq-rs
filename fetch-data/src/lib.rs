@@ -19,16 +19,28 @@ pub enum Error {
     Airq(#[from] airq::Error),
 }
 
-pub async fn fetch_data() -> Result<(), Error> {
-    let config = fs::read_to_string("Airq.toml").expect("Airq.toml config file not found");
-    let config: Config = toml::from_str(&config).expect("Error parsing Airq.toml config file");
-    let airq = AirQ::new(&config.ip, &config.password.to_string());
+pub struct FetchData {
+    airq: AirQ,
+}
 
-    let pg_pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(env!("DATABASE_URL")).await?;
+impl FetchData {
+    pub fn new() -> FetchData {
+        let config = fs::read_to_string("Airq.toml").expect("Airq.toml config file not found");
+        let config: Config = toml::from_str(&config).expect("Error parsing Airq.toml config file");
+        let airq = AirQ::new(&config.ip, &config.password.to_string());
+        FetchData { airq }
+    }
 
-    let last_dbfile_future = sqlx::query!(
+    pub async fn fetch_current(&self) -> Result<Data14, Error> {
+        Ok(self.airq.data_14().await?)
+    }
+
+    pub async fn fetch_data(&self) -> Result<(), Error> {
+        let pg_pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(env!("DATABASE_URL")).await?;
+
+        let last_dbfile_future = sqlx::query!(
             r#"
                 SELECT files.year, files.month, files.day, files.timestamp
                 FROM
@@ -41,59 +53,61 @@ pub async fn fetch_data() -> Result<(), Error> {
                 AND measurements.file = files.id;
             "#,
         ).fetch_optional(&pg_pool);
-    let last_dbtimestamp_future = sqlx::query!(r#"SELECT max(timestamp) as "timestamp" FROM measurements;"#)
-        .fetch_optional(&pg_pool);
-    let files_future = airq.dirbuff();
+        let last_dbtimestamp_future = sqlx::query!(r#"SELECT max(timestamp) as "timestamp" FROM measurements;"#)
+            .fetch_optional(&pg_pool);
+        let files_future = self.airq.dirbuff();
 
-    let (last_dbfile, last_dbtimestamp, files) = futures::join!(last_dbfile_future, last_dbtimestamp_future, files_future);
-    let last_dbfile = last_dbfile?
-        .map(|file| FilePath { year: file.year as u16, month: file.month as u8, day: file.day as u8, timestamp: file.timestamp as u64 });
-    let last_dbtimestamp = last_dbtimestamp?.map(|record| record.timestamp.unwrap_or_default() as u64);
-    let mut files = files?;
+        let (last_dbfile, last_dbtimestamp, files) = futures::join!(last_dbfile_future, last_dbtimestamp_future, files_future);
+        let last_dbfile = last_dbfile?
+            .map(|file| FilePath { year: file.year as u16, month: file.month as u8, day: file.day as u8, timestamp: file.timestamp as u64 });
+        let last_dbtimestamp = last_dbtimestamp?.map(|record| record.timestamp.unwrap_or_default() as u64);
+        let mut files = files?;
 
-    files.retain(|file| Some(file) >= last_dbfile.as_ref());
+        files.retain(|file| Some(file) >= last_dbfile.as_ref());
 
-    for file in files {
-        println!("{}", file.path());
-        for entry in airq.file_recrypt_data_14(&file.path()).await? {
-            let Data14 {
-                data11: Data11 { deviceid: _, status: _, uptime: _, health, performance, measuretime: _, timestamp, bat: _,
-                    door_event: _, window_open: _, tvoc, humidity, humidity_abs, humidity_abs_delta: _, temperature, dewpt, sound,
-                    pressure, no2, co, co2, co2_delta: _, pm1, pm2_5, pm10, cnt0_3: _, cnt0_5: _, cnt1: _, cnt2_5: _, cnt5: _,
-                    cnt10: _, typ_ps: _, rest: _ } , oxygen, o3, so2
-            } = entry;
+        for file in files {
+            println!("{}", file.path());
+            for entry in self.airq.file_recrypt_data_14(&file.path()).await? {
+                let Data14 {
+                    data11: Data11 { deviceid: _, status: _, uptime: _, health, performance, measuretime: _, timestamp, bat: _,
+                        door_event: _, window_open: _, tvoc, humidity, humidity_abs, humidity_abs_delta: _, temperature, dewpt, sound,
+                        pressure, no2, co, co2, co2_delta: _, pm1, pm2_5, pm10, cnt0_3: _, cnt0_5: _, cnt1: _, cnt2_5: _, cnt5: _,
+                        cnt10: _, typ_ps: _, rest: _ } , oxygen, o3, so2
+                } = entry;
 
-            if Some(timestamp) <= last_dbtimestamp {
-                continue;
-            }
+                if Some(timestamp) <= last_dbtimestamp {
+                    continue;
+                }
 
-            sqlx::query!(
-                r#"
-                    WITH new_file AS (
-                        INSERT INTO files (year, month, day, timestamp)
-                        VALUES ($1, $2, $3, $4)
+                sqlx::query!(
+                    r#"
+                        WITH new_file AS (
+                            INSERT INTO files (year, month, day, timestamp)
+                            VALUES ($1, $2, $3, $4)
+                            ON CONFLICT DO NOTHING
+                            RETURNING *
+                        ), file AS (
+                            SELECT * FROM new_file
+                            UNION
+                            SELECT * FROM files WHERE year = $1 AND month = $2 AND day = $3 AND timestamp = $4
+                        )
+                        INSERT INTO measurements VALUES (
+                            $5, (SELECT id FROM file), $6, $7, $8, $9, $10, $11, $12, $13,
+                            $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+                        )
                         ON CONFLICT DO NOTHING
-                        RETURNING *
-                    ), file AS (
-                        SELECT * FROM new_file
-                        UNION
-                        SELECT * FROM files WHERE year = $1 AND month = $2 AND day = $3 AND timestamp = $4
-                    )
-                    INSERT INTO measurements VALUES (
-                        $5, (SELECT id FROM file), $6, $7, $8, $9, $10, $11, $12, $13,
-                        $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
-                    )
-                    ON CONFLICT DO NOTHING
-                    ;
-                "#,
-                file.year as i16, file.month as i16, file.day as i16, file.timestamp as i64,
-                timestamp as i64, health, performance, tvoc[0], humidity[0],
-                humidity_abs[0], temperature[0], dewpt[0], sound[0], pressure[0],
-                no2.map(|no2| no2[0]), co.map(|co| co[0]), co2[0], pm1[0], pm2_5[0],
-                pm10[0], oxygen[0], o3.map(|o3| o3[0]), so2.map(|so2| so2[0]),
-            ).execute(&pg_pool).await?;
+                        ;
+                    "#,
+                    file.year as i16, file.month as i16, file.day as i16, file.timestamp as i64,
+                    timestamp as i64, health, performance, tvoc[0], humidity[0],
+                    humidity_abs[0], temperature[0], dewpt[0], sound[0], pressure[0],
+                    no2.map(|no2| no2[0]), co.map(|co| co[0]), co2[0], pm1[0], pm2_5[0],
+                    pm10[0], oxygen[0], o3.map(|o3| o3[0]), so2.map(|so2| so2[0]),
+                ).execute(&pg_pool).await?;
+            }
         }
-    }
 
-    Ok(())
+        Ok(())
+    }
 }
+

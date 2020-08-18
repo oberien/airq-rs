@@ -1487,6 +1487,7 @@ dependencies = [
  "airq",
  "fetch-data",
  "futures",
+ "lazy_static",
  "rocket",
  "rocket_contrib",
  "serde",

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 use std::fmt::Debug;
 use std::panic::AssertUnwindSafe;
+use std::sync::Mutex;
 
 use sqlx::postgres::{PgPoolOptions, PgPool};
 use serde::{Serialize, Deserialize};
@@ -9,6 +10,9 @@ use rocket::State;
 use rocket_contrib::{json::Json, serve::StaticFiles};
 use tokio::time;
 use futures::FutureExt;
+use airq::Data14;
+use fetch_data::FetchData;
+use lazy_static::lazy_static;
 
 type Result<T> = std::result::Result<T, rocket::response::Debug<sqlx::Error>>;
 
@@ -50,6 +54,15 @@ async fn timestamps(pool: State<'_, PgPool>) -> Result<Json<Timestamps>> {
 }
 
 const MAX_DATAPOINTS: u64 = 500;
+
+lazy_static! {
+    static ref CURRENT_DATA: Mutex<Option<Data14>> = Mutex::new(None);
+}
+
+#[rocket::get("/data/current")]
+async fn data_current() -> Json<Option<Data14>> {
+    Json(CURRENT_DATA.lock().unwrap().clone())
+}
 
 #[rocket::get("/data/<first>/<last>")]
 async fn data(pool: State<'_, PgPool>, first: u64, last: u64) -> Result<Json<HashMap<&'static str, Vec<f64>>>> {
@@ -108,12 +121,25 @@ async fn create_pool() -> Result<PgPool> {
 }
 
 async fn fetch_data_regularly() {
-    let mut interval = time::interval(Duration::from_secs(2 * 60));
+    let mut interval = time::interval(Duration::from_secs(1));
+    let fetchdata = FetchData::new();
     loop {
         interval.tick().await;
-        match AssertUnwindSafe(fetch_data::fetch_data()).catch_unwind().await {
+        match AssertUnwindSafe(fetchdata.fetch_current()).catch_unwind().await {
+            Ok(Err(e)) => eprintln!("Error fetching current data from airQ: {:?}", e),
+            Ok(Ok(data)) => *CURRENT_DATA.lock().unwrap() = Some(data),
+            Err(e) => eprintln!("Panic fetching current data from airQ: {:?}", e),
+        }
+    }
+}
+async fn fetch_current_data_regularly() {
+    let mut interval = time::interval(Duration::from_secs(2 * 60));
+    let fetchdata = FetchData::new();
+    loop {
+        interval.tick().await;
+        match AssertUnwindSafe(fetchdata.fetch_data()).catch_unwind().await {
             Ok(Err(e)) => eprintln!("Error fetching data from airQ: {:?}", e),
-            Ok(_) => (),
+            Ok(Ok(_)) => (),
             Err(e) => eprintln!("Panic fetching data from airQ: {:?}", e),
         }
     }
@@ -122,9 +148,10 @@ async fn fetch_data_regularly() {
 #[rocket::launch]
 async fn rocket() -> rocket::Rocket {
     tokio::spawn(fetch_data_regularly());
+    tokio::spawn(fetch_current_data_regularly());
 
     rocket::ignite()
         .manage(create_pool().await.unwrap())
         .mount("/", StaticFiles::from("static/"))
-        .mount("/", rocket::routes![timestamps, data])
+        .mount("/", rocket::routes![timestamps, data_current, data])
 }

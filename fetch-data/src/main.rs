@@ -1,6 +1,6 @@
-use fetch_data::Error;
+use fetch_data::{Error, FetchData};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    fetch_data::fetch_data().await
+    FetchData::new().fetch_data().await
 }

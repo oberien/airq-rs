@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 use serde_json::Value;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -11,7 +11,7 @@ pub(crate) struct Encrypted {
     pub(crate) content: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceId {
     pub id: String,
 }
@@ -30,12 +30,12 @@ impl FilePath {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ping {
     id: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Status {
     Ok(String),
@@ -47,7 +47,7 @@ pub enum Status {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Data11 {
     #[serde(rename = "DeviceID")]
     pub deviceid: String,
@@ -92,7 +92,7 @@ pub struct Data11 {
     pub rest: HashMap<String, Value>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Data14 {
     #[serde(flatten)]
     pub data11: Data11,
