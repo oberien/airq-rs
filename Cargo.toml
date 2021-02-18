@@ -4,3 +4,7 @@ members = [
     "fetch-data",
     "server",
 ]
+default-members = [
+    "airq-lib",
+    "server",
+]

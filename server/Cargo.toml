@@ -10,9 +10,11 @@ edition = "2018"
 fetch-data = { path = "../fetch-data" }
 rocket = { git = "https://github.com/SergioBenitez/Rocket" }
 rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket" }
-sqlx = { version = "0.4.0-beta.1", default-features = false, features = ["runtime-tokio", "macros", "postgres"] }
-tokio = "0.2.22"
+sqlx = { version = "0.5.1", default-features = false, features = ["runtime-tokio-rustls", "macros", "postgres"] }
+tokio = "1.2.0"
 airq = { path = "../airq-lib" }
-serde = { version = "1.0.114", features = ["derive"] }
-futures = "0.3.5"
+serde = { version = "1.0.123", features = ["derive"] }
+futures = "0.3.12"
 lazy_static = "1.4.0"
+# workaround for https://github.com/bitvecto-rs/bitvec/issues/105
+funty = "=1.1.0"

@@ -145,12 +145,12 @@ impl AirQ {
     }
 
     #[cfg(not(feature = "blocking"))]
-    pub async fn dir(&self, path: &str) -> Result<Vec<String>> {
-        self.decrypt(&self.request_raw(&format!("/dir?request={}", self.encrypt(path.as_bytes())?)).await?)
+    pub async fn dir<S: AsRef<str>>(&self, path: S) -> Result<Vec<String>> {
+        self.decrypt(&self.request_raw(&format!("/dir?request={}", self.encrypt(path.as_ref().as_bytes())?)).await?)
     }
     #[cfg(feature = "blocking")]
-    pub fn dir(&self, path: &str) -> Result<Vec<String>> {
-        self.decrypt(&self.request_raw(&format!("/dir?request={}", self.encrypt(path.as_bytes())?))?)
+    pub fn dir<S: AsRef<str>>(&self, path: S) -> Result<Vec<String>> {
+        self.decrypt(&self.request_raw(&format!("/dir?request={}", self.encrypt(path.as_ref():w.as_bytes())?))?)
     }
     #[cfg(not(feature = "blocking"))]
     pub async fn dirbuff(&self) -> Result<Vec<FilePath>> {
@@ -224,12 +224,12 @@ impl AirQ {
         self.file_recrypt_raw(path)
     }
     #[cfg(not(feature = "blocking"))]
-    pub async fn file_recrypt_data_14(&self, path: &str) -> Result<Vec<Data14>> {
-        self.file_recrypt_raw(path).await
+    pub async fn file_recrypt_data_14<S: AsRef<str>>(&self, path: S) -> Result<Vec<Data14>> {
+        self.file_recrypt_raw(path.as_ref()).await
     }
     #[cfg(feature = "blocking")]
-    pub fn file_recrypt_data_14(&self, path: &str) -> Result<Vec<Data14>> {
-        self.file_recrypt_raw(path)
+    pub fn file_recrypt_data_14<S: AsRef<str>>(&self, path: S) -> Result<Vec<Data14>> {
+        self.file_recrypt_raw(path.as_ref())
     }
     #[cfg(not(feature = "blocking"))]
     pub async fn file_recrypt_raw<T: DeserializeOwned>(&self, path: &str) -> Result<Vec<T>> {
