@@ -1,5 +1,6 @@
 #[cfg(feature = "blocking")]
-use std::time::{Instant, Duration};
+use std::time::Instant;
+use std::time::Duration;
 #[cfg(feature = "blocking")]
 use std::thread;
 #[cfg(feature = "blocking")]
@@ -26,7 +27,6 @@ type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 pub struct AirQ {
     key: [u8; 32],
     prefix: String,
-    client: Client,
 }
 
 impl AirQ {
@@ -37,31 +37,42 @@ impl AirQ {
         AirQ {
             key,
             prefix: format!("http://{}", domain),
-            client: Client::new(),
         }
+    }
+
+    fn client(&self) -> Client {
+        Client::builder()
+            .timeout(Duration::from_secs(120))
+            .build()
+            .unwrap()
     }
 
     #[cfg(not(feature = "blocking"))]
     async fn request_raw(&self, path: &str) -> Result<String> {
-        Ok(self.client.get(&format!("{}{}", self.prefix, path))
+        Ok(self.client().get(&format!("{}{}", self.prefix, path))
             .send().await?
             .text().await?)
     }
     #[cfg(feature = "blocking")]
     fn request_raw(&self, path: &str) -> Result<String> {
-        Ok(self.client.get(&format!("{}{}", self.prefix, path))
+        Ok(self.client().get(&format!("{}{}", self.prefix, path))
             .send()?
             .text()?)
     }
     #[cfg(not(feature = "blocking"))]
     async fn request<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
-        Ok(self.client.get(&format!("{}{}", self.prefix, path))
-            .send().await?
-            .json().await?)
+        println!("get client");
+        let client = self.client().get(&format!("{}{}", self.prefix, path));
+        println!("send request");
+        let res = client.send().await?;
+        println!("get json");
+        let json = res.json().await?;
+        println!("done");
+        Ok(json)
     }
     #[cfg(feature = "blocking")]
     fn request<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
-        Ok(self.client.get(&format!("{}{}", self.prefix, path))
+        Ok(self.client().get(&format!("{}{}", self.prefix, path))
             .send()?
             .json()?)
     }

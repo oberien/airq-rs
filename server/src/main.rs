@@ -121,7 +121,7 @@ async fn create_pool() -> Result<PgPool> {
 }
 
 async fn fetch_data_regularly() {
-    let mut interval = time::interval(Duration::from_secs(1));
+    let mut interval = time::interval(Duration::from_secs(5));
     let fetchdata = FetchData::new();
     loop {
         interval.tick().await;

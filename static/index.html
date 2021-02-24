@@ -155,7 +155,7 @@ function caqi(prop, value, limits) {
 
 // current data
 
-setInterval(getCurrent, 2000)
+setInterval(getCurrent, 5000)
 function getCurrent() {
   get("/data/current", (res) => {
     const measurements = [
