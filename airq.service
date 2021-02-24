@@ -1,0 +1,10 @@
+[Unit]
+Description=AirQ Server
+Requires=postgresql.service
+After=postgresql.service
+
+[Service]
+ExecStart=/usr/bin/env RUST_BACKTRACE=full /usr/local/bin/airq-server
+
+[Install]
+WantedBy=multi-user.target
