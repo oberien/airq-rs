@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "airq-lib",
-    "fetch-data",
     "server",
 ]
 default-members = [

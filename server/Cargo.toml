@@ -7,14 +7,18 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-fetch-data = { path = "../fetch-data" }
 rocket = { git = "https://github.com/SergioBenitez/Rocket" }
 rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket" }
 sqlx = { version = "0.5.1", default-features = false, features = ["runtime-tokio-rustls", "macros", "postgres"] }
 tokio = "1.2.0"
 airq = { path = "../airq-lib" }
 serde = { version = "1.0.123", features = ["derive"] }
+serde_json = "1.0.64"
 futures = "0.3.12"
 lazy_static = "1.4.0"
 # workaround for https://github.com/bitvecto-rs/bitvec/issues/105
 funty = "=1.1.0"
+dotenv = "0.15.0"
+zeroconf = "0.7.1"
+thiserror = "1.0.25"
+chrono = "0.4.19"
