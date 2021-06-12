@@ -5,6 +5,10 @@ and displaying historical data as graphs.
 
 ## Setup
 
+0. Requirements:
+   * avahi-daemon
+   * libavahi-client-dev
+   * libclang
 1. Create and initialize a postgres database for airq data
    ```sh
    echo "SELECT 'CREATE DATABASE airq' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'airq')\gexec" | sudo -u postgres psql

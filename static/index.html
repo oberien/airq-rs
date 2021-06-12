@@ -157,7 +157,7 @@ function caqi(prop, value, limits) {
 
 setInterval(getCurrent, 5000)
 function getCurrent() {
-  get("/data/current", (res) => {
+  get("data/current", (res) => {
     const measurements = [
       // name,                prop,           airqQuality,                caqi-level,          conversionFunction
       ["Time of Measurement", "timestamp",    [],                         [],                  formatTs],
@@ -258,7 +258,7 @@ document.getElementById("All").onclick = getAll;
 getMinus(24*3600*1000);
 
 function getData(from, to) {
-  get("/data/" + from + "/" + to, gotData);
+  get("data/" + from + "/" + to, gotData);
 }
 function getMinus(minus) {
   const now = Date.now();
@@ -266,7 +266,7 @@ function getMinus(minus) {
   getData(before, now);
 }
 function getAll() {
-  get("/timestamps", gotTimestamps);
+  get("timestamps", gotTimestamps);
 }
 function gotTimestamps(response) {
   window.timestamps = response;
