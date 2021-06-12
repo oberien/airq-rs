@@ -286,11 +286,7 @@ async fn rocket() -> rocket::Rocket {
     tokio::spawn(fetch_current_data_regularly(airq_ip.clone(), password.clone()));
     tokio::spawn(fetch_data_regularly(airq_ip, password, pool.clone()));
 
-    let mut config = Config::default();
-    if config.port == 8000 {
-        config.port = 8080;
-    }
-    let rocket = rocket::custom(Figment::from(config))
+    let rocket = rocket::ignite()
         .manage(pool);
     #[cfg(debug_assertions)]
     let rocket = rocket.mount("/", StaticFiles::from("static/"));
