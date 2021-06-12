@@ -7,7 +7,8 @@ use std::fs::File;
 
 use sqlx::postgres::{PgPoolOptions, PgPool};
 use serde::{Serialize, Deserialize};
-use rocket::{State, Config};
+use rocket::{State, Config, Request, Data, Route};
+use rocket::figment::Figment;
 use rocket_contrib::{json::Json, serve::StaticFiles};
 use tokio::time;
 use futures::FutureExt;
@@ -17,9 +18,12 @@ use lazy_static::lazy_static;
 type Result<T> = std::result::Result<T, rocket::response::Debug<sqlx::Error>>;
 
 mod fetch_data;
+#[cfg(not(debug_assertions))]
+mod include_static_files;
 
 use fetch_data::FetchData;
-use rocket::figment::Figment;
+#[cfg(not(debug_assertions))]
+use include_static_files::IncludedStaticFiles;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Measurement {
@@ -262,6 +266,7 @@ async fn fetch_data_regularly(airq_ip: String, password: String, pg_pool: PgPool
     }
 }
 
+
 #[rocket::launch]
 async fn rocket() -> rocket::Rocket {
     if cfg!(debug_assertions) {
@@ -285,8 +290,11 @@ async fn rocket() -> rocket::Rocket {
     if config.port == 8000 {
         config.port = 8080;
     }
-    rocket::custom(Figment::from(config))
-        .manage(pool)
-        .mount("/", StaticFiles::from("static/"))
-        .mount("/", rocket::routes![timestamps, data_current, data])
+    let rocket = rocket::custom(Figment::from(config))
+        .manage(pool);
+    #[cfg(debug_assertions)]
+    let rocket = rocket.mount("/", StaticFiles::from("static/"));
+    #[cfg(not(debug_assertions))]
+    let rocket = rocket.mount("/", IncludedStaticFiles);
+    rocket.mount("/", rocket::routes![timestamps, data_current, data])
 }

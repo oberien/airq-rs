@@ -4,7 +4,13 @@ Requires=postgresql.service
 After=postgresql.service
 
 [Service]
-ExecStart=/usr/bin/env RUST_BACKTRACE=full /usr/local/bin/airq-server
+WorkingDirectory=/usr/local/share/airq
+Environment="RUST_BACKTRACE=full"
+Environment="ROCKET_PORT=8765"
+Environment="ROCKET_ADDRESS=127.0.0.1"
+Environment="DATABASE_URL=postgres://postgres@localhost/airq"
+Environment="AIRQ_PASSWORD=airqsetup"
+ExecStart=/usr/local/bin/airq-server
 
 [Install]
 WantedBy=multi-user.target
