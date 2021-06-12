@@ -30,11 +30,15 @@ impl FetchData {
         // self.airq.test().await;
         dbg!(self.airq.log().await)?;
         let dirs = self.airq.dirbuff().await?;
-        let from = match last_timestamp {
+        let from_file = match last_file {
+            Some(file) => file.timestamp,
+            None => (Utc::now() - Duration::days(7)).timestamp() as u64,
+        };
+        let from_ts = match last_timestamp {
             Some(ts) => ts,
             None => (Utc::now() - Duration::days(7)).timestamp() as u64,
         };
-        let mut timestamps: Vec<_> = dirs.into_iter().filter(|f| f.timestamp >= from).collect();
+        let mut timestamps: Vec<_> = dirs.into_iter().filter(|f| f.timestamp >= from_file).collect();
 
         const CONCURRENT_REQUESTS: usize = 3;
         timestamps.sort_unstable();
@@ -53,7 +57,7 @@ impl FetchData {
             timestamp: 0
         };
         while let Some((file, entries)) = entries.next().await.transpose()? {
-            data.extend(entries);
+            data.extend(entries.into_iter().filter(|data| data.data11.timestamp > from_ts));
             last_file = last_file.max(file);
         }
         Ok((last_file, data))
