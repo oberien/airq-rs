@@ -229,22 +229,19 @@ async fn create_pool() -> Result<PgPool> {
 }
 
 async fn fetch_current_data_regularly(airq_ip: String, password: String) {
-    let mut interval = time::interval(Duration::from_secs(5));
     let fetchdata = FetchData::new(&airq_ip, &password);
     loop {
-        interval.tick().await;
         match AssertUnwindSafe(fetchdata.fetch_current()).catch_unwind().await {
             Ok(Err(e)) => eprintln!("Error fetching current data from airQ: {:?}", e),
             Ok(Ok(data)) => *CURRENT_DATA.lock().unwrap() = Some(data),
             Err(e) => eprintln!("Panic fetching current data from airQ: {:?}", e),
         }
+        time::sleep(Duration::from_secs(5)).await;
     }
 }
 async fn fetch_data_regularly(airq_ip: String, password: String, pg_pool: PgPool) {
-    let mut interval = time::interval(Duration::from_secs(2 * 60));
     let fetchdata = FetchData::new(&airq_ip, &password);
     loop {
-        interval.tick().await;
         // match AssertUnwindSafe(fetchdata.fetch_data(&pg_pool)).catch_unwind().await {
         let last_file = SEVEN_DAYS.lock().unwrap().last_file.clone();
         let last_timestamp = SEVEN_DAYS.lock().unwrap().data.last().map(|data| data.data11.timestamp);
@@ -263,6 +260,7 @@ async fn fetch_data_regularly(airq_ip: String, password: String, pg_pool: PgPool
             },
             Err(e) => eprintln!("Panic fetching data from airQ: {:?}", e),
         }
+        time::sleep(Duration::from_secs(2 * 60)).await;
     }
 }
 

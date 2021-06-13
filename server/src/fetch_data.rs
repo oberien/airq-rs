@@ -27,8 +27,6 @@ impl FetchData {
     }
 
     pub async fn fetch_data(&self, last_file: Option<FilePath>, last_timestamp: Option<u64>) -> Result<(FilePath, Vec<Data14>), Error> {
-        // self.airq.test().await;
-        dbg!(self.airq.log().await)?;
         let dirs = self.airq.dirbuff().await?;
         let from_file = match last_file {
             Some(file) => file.timestamp,

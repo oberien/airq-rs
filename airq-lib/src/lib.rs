@@ -86,13 +86,9 @@ impl AirQ {
     }
     #[cfg(not(feature = "blocking"))]
     async fn request<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
-        println!("get client");
         let client = self.client().get(&format!("{}{}", self.prefix, path));
-        println!("send request");
         let res = client.send().await?;
-        println!("get json");
         let json = res.json().await?;
-        println!("done");
         Ok(json)
     }
     #[cfg(feature = "blocking")]
@@ -237,7 +233,7 @@ impl AirQ {
     }
     #[cfg(not(feature = "blocking"))]
     pub async fn file_raw<T: DeserializeOwned>(&self, path: &str) -> Result<Vec<T>> {
-        let lines = self.request_raw(&format!("/file?request={}", dbg!(self.encrypt(path.as_bytes())?))).await?;
+        let lines = self.request_raw(&format!("/file?request={}", self.encrypt(path.as_bytes())?)).await?;
         self.aggregate_lines(lines)
     }
     #[cfg(feature = "blocking")]
@@ -269,7 +265,7 @@ impl AirQ {
     }
     #[cfg(not(feature = "blocking"))]
     pub async fn file_recrypt_raw<T: DeserializeOwned>(&self, path: &str) -> Result<Vec<T>> {
-        let lines = self.request_raw(&format!("/file_recrypt?request={}", dbg!(self.encrypt(dbg!(path.as_bytes()))?))).await?;
+        let lines = self.request_raw(&format!("/file_recrypt?request={}", self.encrypt(path.as_bytes())?)).await?;
         self.aggregate_lines(lines)
     }
     #[cfg(feature = "blocking")]
@@ -287,13 +283,11 @@ impl AirQ {
     }
 
     fn decrypt<T: DeserializeOwned>(&self, encrypted: &str) -> Result<T> {
-        println!("{}", encrypted);
         let mut decoded = base64::decode(encrypted)?;
         let iv = &decoded[..16];
         let cipher = Aes256Cbc::new_var(&self.key, iv).unwrap();
         let ciphertext = &mut decoded[16..];
         let plaintext = cipher.decrypt(ciphertext)?;
-        println!("{}", std::str::from_utf8(plaintext).unwrap());
         Ok(serde_json::from_slice(plaintext)?)
     }
 
