@@ -62,7 +62,7 @@ pub struct Data11 {
     pub door_event: f64,
     pub window_open: Option<f64>,
     // values
-    pub tvoc: [f64; 2],
+    pub tvoc: Option<[f64; 2]>,
     pub humidity: [f64; 2],
     pub humidity_abs: [f64; 2],
     #[serde(rename = "dHdt")]
@@ -109,7 +109,9 @@ impl fmt::Display for Data11 {
             cnt10: _, typ_ps: _, rest: _ } = self;
         writeln!(f, "health: {}", health)?;
         writeln!(f, "performance: {}", performance)?;
-        writeln!(f, "tvoc: {}ppb", tvoc[0])?;
+        if let Some(tvoc) = tvoc {
+            writeln!(f, "tvoc: {}ppb", tvoc[0])?;
+        }
         writeln!(f, "humidity: {}%", humidity[0])?;
         writeln!(f, "humidity_abs: {}g/m³", humidity_abs[0])?;
         writeln!(f, "temperature: {}°C", temperature[0])?;

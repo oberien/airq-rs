@@ -45,6 +45,7 @@
   </table>
 </div>
 <div>
+  <input id="1h" type="button" value="1h" />
   <input id="4h" type="button" value="4h" />
   <input id="8h" type="button" value="8h" />
   <input id="16h" type="button" value="16h" />
@@ -248,6 +249,7 @@ for (const e of document.getElementsByClassName("zoom")) {
   }
 }
 
+document.getElementById("1h").onclick = () => getMinus(1*3600*1000);
 document.getElementById("4h").onclick = () => getMinus(4*3600*1000);
 document.getElementById("8h").onclick = () => getMinus(8*3600*1000);
 document.getElementById("16h").onclick = () => getMinus(16*3600*1000);
@@ -319,7 +321,7 @@ function makeGraph(obj) {
         xAxes: [{
           type: 'time',
           time: {
-            unit: 'hour',
+            // unit: 'hour',
             displayFormats: {
               hour: 'MMM D hA',
             },
@@ -337,10 +339,10 @@ function makeGraph(obj) {
           type: 'linear',
           display: true,
           position: "left",
-          ticks: {
-            min: left[0],
-            max: left[1],
-          },
+          // ticks: {
+          //   min: left[0],
+          //   max: left[1],
+          // },
         }],
       },
     },
@@ -351,10 +353,10 @@ function makeGraph(obj) {
       type: 'linear',
       display: true,
       position: "right",
-      ticks: {
-        min: right[0],
-        max: right[1],
-      },
+      // ticks: {
+      //   min: right[0],
+      //   max: right[1],
+      // },
     });
   }
   charts[id] = new Chart(ctx, config);

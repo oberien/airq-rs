@@ -19,7 +19,7 @@ impl Handler for IncludedStaticFiles {
         match DIR.get_file(&search_for[1..]) {
             None => Outcome::Forward(data),
             Some(file) => {
-                let mut response = file.contents().respond_to(request)
+                let response = file.contents().respond_to(request)
                     .map(|mut response| {
                         if let Some(ext) = file.path().extension() {
                             if let Some(ct) = ContentType::from_extension(&ext.to_string_lossy()) {

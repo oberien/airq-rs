@@ -33,6 +33,7 @@ and displaying historical data as graphs.
    
 # Supported AirQ Firmware Versions
 
+* **1.79**: 
 * **1.75**: Waiting for this version
 * **1.74**: Bug in the `/fetch_recrypt` API where lines aren't separated by `\n`
 * **1.73**: OOM error whenever trying to use the `/fetch_recrypt` API

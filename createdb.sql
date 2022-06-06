@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS measurements (
     file int4 NOT NULL,
     health float8 NOT NULL,
     performance float8 NOT NULL,
-    tvoc float8 NOT NULL,
+    tvoc float8,
     humidity float8 NOT NULL,
     humidity_abs float8 NOT NULL,
     temperature float8 NOT NULL,
