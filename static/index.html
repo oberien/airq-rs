@@ -12,6 +12,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3"></script>
   <script src="https://cdn.jsdelivr.net/npm/tinycolor2@1.4.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/tinygradient@1.1.2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.7"></script>
 </head>
 <body>
 <div>
@@ -237,6 +239,7 @@ const overlay = document.getElementById("overlay");
 const overlayInner = document.getElementById("overlay-inner");
 
 overlay.onclick = () => {
+  console.log("overlay-click");
   overlayInner.innerHTML = "";
   overlay.classList.add("hidden")
 }
@@ -244,7 +247,46 @@ for (const e of document.getElementsByClassName("zoom")) {
   e.onclick = () => {
     const canvas = document.createElement("canvas");
     overlayInner.appendChild(canvas);
-    new Chart(canvas, chartConfigs[e.id]);
+    const chart = new Chart(canvas, chartConfigs[e.id]);
+    chart.config.options.plugins = {
+      zoom: {
+        zoom: {
+          enabled: true,
+          drag: {
+            backgroundColor: 'rgb(225,225,225,0.7)',
+            animationDuration: 0,
+          },
+          mode: 'x',
+          onZoom: function({chart}) {
+            let start = Math.floor(chart.scales["x-axis-0"].min);
+            let end = Math.ceil(chart.scales["x-axis-0"].max);
+            // load more data and add it to the existing graph in the correct position
+            getData(start, end, () => {
+              for (let i = 0; i < chart.data.datasets.length; i++) {
+                // delete old data of zoomed-in part
+                let data = chart.data.datasets[i].data.filter((data) => data.x < start || end < data.x);
+                // add new more precise data of zoomed-in part
+                data.push(...chartConfigs[e.id].data.datasets[i].data);
+                // make sure the order is correct as chartjs has problems otherwise
+                data.sort((a, b) => a.x - b.x);
+                chart.data.datasets[i].data = data;
+              }
+              chart.update();
+            });
+          },
+        },
+      },
+    };
+    chart.update();
+    overlayInner.addEventListener("dblclick", () => {
+      getData(lastTimestamps.from, lastTimestamps.to, () => {
+        for (let i = 0; i < chart.data.datasets.length; i++) {
+          chart.data.datasets[i].data = chartConfigs[e.id].data.datasets[i].data;
+        }
+        chart.update();
+      });
+      chart.resetZoom();
+    });
     overlay.classList.remove("hidden");
   }
 }
@@ -256,25 +298,32 @@ document.getElementById("16h").onclick = () => getMinus(16*3600*1000);
 document.getElementById("24h").onclick = () => getMinus(24*3600*1000);
 document.getElementById("48h").onclick = () => getMinus(48*3600*1000);
 document.getElementById("All").onclick = getAll;
-
+const lastTimestamps = { from: 0, to: 0 };
 getMinus(24*3600*1000);
 
-function getData(from, to) {
-  get("data/" + from + "/" + to, gotData);
+function getData(from, to, callback) {
+  get("data/" + from + "/" + to, (response) => {
+    gotData(response);
+    if (callback !== undefined && typeof callback === "function") {
+      callback()
+    }
+  });
 }
-function getMinus(minus) {
+function getMinus(minus, callback) {
+  lastMinus = minus;
   const now = Date.now();
   const before = now - minus;
-  getData(before, now);
+  lastTimestamps.from = before;
+  lastTimestamps.to = now;
+  getData(before, now, callback);
 }
 function getAll() {
-  get("timestamps", gotTimestamps);
+  get("timestamps", (response) => {
+    lastTimestamps.from = response.first;
+    lastTimestamps.to = response.last;
+    getData(response.first, response.last);
+  });
 }
-function gotTimestamps(response) {
-  window.timestamps = response;
-  getData(timestamps.first, timestamps.last);
-}
-
 
 function makeGraph(obj) {
   const id = obj.id;
@@ -366,11 +415,15 @@ function makeGraph(obj) {
 function gotData(response) {
   window.data = response;
 
+  function ts(data) {
+    return data.map((e, i) => ({ x: window.data.timestamp[i], y: e }));
+  }
+
   makeGraph({
     id: "graphHealthPerformance",
     axes: [
-      ["health", window.data.health, "green"],
-      ["performance", window.data.performance, "blue"],
+      ["health", ts(window.data.health), "green"],
+      ["performance", ts(window.data.performance), "blue"],
     ],
     left: [0, 1000],
     right: [0, 1000],
@@ -378,64 +431,64 @@ function gotData(response) {
   makeGraph({
     id: "graphTemperatureDewpt",
     axes: [
-      ["temperature (°C)", window.data.temperature, "red"],
-      ["dew point (°C)", window.data.dewpt, "blue"],
+      ["temperature (°C)", ts(window.data.temperature), "red"],
+      ["dew point (°C)", ts(window.data.dewpt), "blue"],
     ],
     left: [10, 40],
   });
   makeGraph({
     id: "graphTvoc",
     axes: [
-      ["VOCs (ppb)", window.data.tvoc, "black"],
+      ["VOCs (ppb)", ts(window.data.tvoc), "black"],
     ],
     // left: [0, 500],
   });
   makeGraph({
     id: "graphHumidity",
     axes: [
-      ["Humidity (%)", window.data.humidity, "deepskyblue", "left"],
-      ["Humidity (g/m³)", window.data.humidity_abs, "blue", "right"],
+      ["Humidity (%)", ts(window.data.humidity), "deepskyblue", "left"],
+      ["Humidity (g/m³)", ts(window.data.humidity_abs), "blue", "right"],
     ]
   });
   makeGraph({
     id: "graphSound",
     axes: [
-      ["Sound (dB(A))", window.data.sound, "red"],
+      ["Sound (dB(A))", ts(window.data.sound), "red"],
     ],
   });
   makeGraph({
     id: "graphPressure",
     axes: [
-      ["Pressue (hPa)", window.data.pressure, "#368BC1"],
+      ["Pressue (hPa)", ts(window.data.pressure), "#368BC1"],
     ],
   });
   makeGraph({
     id: "graphO2co2",
     axes: [
-      ["CO₂ (ppm)", window.data.co2, "darkslateblue", "left"],
-      ["O₂ (%)", window.data.oxygen, "lightblue", "right"],
+      ["CO₂ (ppm)", ts(window.data.co2), "darkslateblue", "left"],
+      ["O₂ (%)", ts(window.data.oxygen), "lightblue", "right"],
     ],
   });
   makeGraph({
     id: "graphFineDust",
     axes: [
-      ["PM 1 (μg/m³)", window.data.pm1, "darkgray"],
-      ["PM 2.5 (μg/m³)", window.data.pm2_5, "gray"],
-      ["PM 10 (μg/m³)", window.data.pm10, "dimgray"],
+      ["PM 1 (μg/m³)", ts(window.data.pm1), "darkgray"],
+      ["PM 2.5 (μg/m³)", ts(window.data.pm2_5), "gray"],
+      ["PM 10 (μg/m³)", ts(window.data.pm10), "dimgray"],
     ],
   });
   makeGraph({
     id: "graphO3no2",
     axes: [
-      ["O₃ (μg/m³)", window.data.o3, "red", "left"],
-      ["NO₂ (μg/m³)", window.data.no2, "coral", "left"],
+      ["O₃ (μg/m³)", ts(window.data.o3), "red", "left"],
+      ["NO₂ (μg/m³)", ts(window.data.no2), "coral", "left"],
     ],
   });
   makeGraph({
     id: "graphCoso2",
     axes: [
-      ["CO (mg/m³)", window.data.co, "olive", "left"],
-      ["SO₂ (μg/m³)", window.data.so2, "gold", "right"],
+      ["CO (mg/m³)", ts(window.data.co), "olive", "left"],
+      ["SO₂ (μg/m³)", ts(window.data.so2), "gold", "right"],
     ],
   });
 }

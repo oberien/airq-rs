@@ -80,7 +80,7 @@ impl FetchData {
         };
 
         timestamps.sort_unstable();
-        println!("{} timestamps", timestamps.len());
+        println!("{} timestamp(s)", timestamps.len());
 
         let mut entries = stream::iter(timestamps)
             .inspect(|file| println!("fetching {}", file.path()))
