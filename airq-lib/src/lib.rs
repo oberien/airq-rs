@@ -24,6 +24,7 @@ mod data;
 
 pub use error::*;
 pub use data::*;
+pub use base64::DecodeError;
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 

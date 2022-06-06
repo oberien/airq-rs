@@ -2,6 +2,7 @@
 members = [
     "airq-lib",
     "server",
+    "measurements",
 ]
 default-members = [
     "airq-lib",
