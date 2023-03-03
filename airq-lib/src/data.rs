@@ -58,15 +58,15 @@ pub struct Data11 {
     pub performance: f64,
     pub measuretime: f64,
     pub timestamp: u64,
-    pub bat: [f64; 2],
-    pub door_event: f64,
+    pub bat: Option<[f64; 2]>,
+    pub door_event: Option<f64>,
     pub window_open: Option<f64>,
     // values
     pub tvoc: Option<[f64; 2]>,
     pub humidity: [f64; 2],
     pub humidity_abs: [f64; 2],
     #[serde(rename = "dHdt")]
-    pub humidity_abs_delta: f64,
+    pub humidity_abs_delta: Option<f64>,
     pub temperature: [f64; 2],
     /// Dew Point Temperature
     pub dewpt: [f64; 2],
@@ -76,7 +76,7 @@ pub struct Data11 {
     pub co: Option<[f64; 2]>,
     pub co2: [f64; 2],
     #[serde(rename = "dCO2dt")]
-    pub co2_delta: f64,
+    pub co2_delta: Option<f64>,
     pub pm1: [f64; 2],
     pub pm2_5: [f64; 2],
     pub pm10: [f64; 2],
