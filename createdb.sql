@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS files (
     UNIQUE (year, month, day, timestamp)
 );
 CREATE TABLE IF NOT EXISTS measurements (
-    timestamp int8 PRIMARY KEY NOT NULL,
+    timestamp timestamp with time zone PRIMARY KEY NOT NULL,
     file int4 NOT NULL,
     health float8 NOT NULL,
     performance float8 NOT NULL,

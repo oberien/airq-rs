@@ -142,7 +142,7 @@ impl MeasurementStorage for Postgres {
     async fn timestamps(&self) -> Result<Timestamps, Error> {
         Ok(sqlx::query_as!(
             Timestamps,
-            "SELECT min(timestamp) as first, max(timestamp) as last FROM measurements;"
+            "SELECT extract(epoch from min(timestamp))::int8 * 1000 as first, extract(epoch from max(timestamp))::int8 * 1000 as last FROM measurements;"
         ).fetch_one(&self.pool).await?)
     }
 
@@ -151,7 +151,7 @@ impl MeasurementStorage for Postgres {
                 Measurement,
                 r#"
                     SELECT
-                        min(timestamp) as timestamp, avg(health) as health, avg(performance) as performance,
+                        extract(epoch from min(timestamp))::int8 * 1000 as timestamp, avg(health) as health, avg(performance) as performance,
                         avg(tvoc) as tvoc, avg(humidity) as humidity, avg(humidity_abs) as humidity_abs,
                         avg(temperature) as temperature, avg(dewpt) as dewpt, avg(sound) as sound,
                         avg(pressure) as pressure, avg(no2) as no2, avg(co) as co,
@@ -159,8 +159,8 @@ impl MeasurementStorage for Postgres {
                         avg(pm10) as pm10, avg(oxygen) as oxygen, avg(o3) as o3,
                         avg(so2) as so2
                     FROM measurements
-                    WHERE timestamp >= $1 AND timestamp <= $2
-                    GROUP BY timestamp / $3
+                    WHERE extract(epoch from timestamp)::int8 * 1000 >= $1 AND extract(epoch from timestamp)::int8 * 1000 <= $2
+                    GROUP BY extract(epoch from timestamp)::int8 * 1000 / $3
                     ORDER BY timestamp;
                 "#,
                 first as i64, last as i64, combine_millis as i64
@@ -170,7 +170,7 @@ impl MeasurementStorage for Postgres {
     async fn last_timestamps(&self) -> Result<Option<(FilePath, u64)>, Error> {
         let last = sqlx::query!(
             r#"
-                SELECT files.year, files.month, files.day, files.timestamp as file_timestamp, measurements.timestamp as measurement_timestamp
+                SELECT files.year, files.month, files.day, files.timestamp as file_timestamp, extract(epoch from measurements.timestamp)::int8 * 1000 as measurement_timestamp
                 FROM files, measurements
                 WHERE measurements.file = files.id
                 ORDER BY measurements.timestamp DESC
@@ -182,7 +182,7 @@ impl MeasurementStorage for Postgres {
             month: last.month as u8,
             day: last.day as u8,
             timestamp: last.file_timestamp as u64,
-        }, last.measurement_timestamp as u64)))
+        }, last.measurement_timestamp.unwrap() as u64)))
     }
 
     async fn store_entries(&self, entries: &mut (dyn Stream<Item = (FilePath, Vec<Data14>)> + Unpin + Send), last_timestamp: Option<u64>) -> Result<(), Error> {
@@ -213,7 +213,7 @@ impl MeasurementStorage for Postgres {
                                 SELECT * FROM files WHERE year = $1 AND month = $2 AND day = $3 AND timestamp = $4
                             )
                             INSERT INTO measurements VALUES (
-                                $5, (SELECT id FROM file), $6, $7, $8, $9, $10, $11, $12, $13,
+                                to_timestamp($5 / 1000), (SELECT id FROM file), $6, $7, $8, $9, $10, $11, $12, $13,
                                 $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
                             )
                             ON CONFLICT DO NOTHING
