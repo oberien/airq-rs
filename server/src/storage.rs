@@ -18,6 +18,8 @@ pub trait MeasurementStorage: Send + Sync {
     async fn data(&self, first: u64, last: u64, combine_datapoints: u64, combine_millis: u64, ) -> Result<Vec<Measurement>, Error>;
     async fn last_timestamps(&self) -> Result<Option<(FilePath, u64)>, Error>;
     async fn store_entries(&self, entries: &mut (dyn Stream<Item = (FilePath, Vec<Data14>)> + Unpin + Send), last_timestamp: Option<u64>) -> Result<(), Error>;
+    async fn store_manual_readout(&self, data: &Data14) -> Result<(), Error>;
+    async fn clean_manual_readouts(&self) -> Result<(), Error>;
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -126,6 +128,10 @@ impl MeasurementStorage for Sevendays {
 
         Ok(())
     }
+
+    // not needed for local testing
+    async fn store_manual_readout(&self, _data: &Data14) -> Result<(), Error> { Ok(()) }
+    async fn clean_manual_readouts(&self) -> Result<(), Error> { Ok(()) }
 }
 
 impl Postgres {
@@ -230,6 +236,39 @@ impl MeasurementStorage for Postgres {
             })).await?;
         }
         Ok(())
+    }
 
+    async fn store_manual_readout(&self, data: &Data14) -> Result<(), Error> {
+        let Data14 {
+            data11: Data11 {
+                deviceid: _, status: _, uptime: _, health, performance, measuretime: _, timestamp, bat: _,
+                door_event: _, window_open: _, tvoc, humidity, humidity_abs, humidity_abs_delta: _, temperature, dewpt, sound,
+                pressure, no2, co, co2, co2_delta: _, pm1, pm2_5, pm10, cnt0_3: _, cnt0_5: _, cnt1: _, cnt2_5: _, cnt5: _,
+                cnt10: _, typ_ps: _, rest: _
+            }, oxygen, o3, so2
+        } = data;
+        sqlx::query!(
+            r#"
+                INSERT INTO measurements VALUES (
+                    to_timestamp($1 / 1000), NULL, $2, $3, $4, $5, $6, $7, $8, $9,
+                    $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+                )
+                ON CONFLICT DO NOTHING
+                ;
+            "#,
+            *timestamp as i64, health, performance, tvoc.map(|tvoc| tvoc[0]), humidity[0],
+            humidity_abs[0], temperature[0], dewpt[0], sound[0], pressure[0],
+            no2.map(|no2| no2[0]), co.map(|co| co[0]), co2[0], pm1[0], pm2_5[0],
+            pm10[0], oxygen[0], o3.map(|o3| o3[0]), so2.map(|so2| so2[0]),
+        ).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    async fn clean_manual_readouts(&self) -> Result<(), Error> {
+        sqlx::query!(r#"
+            DELETE FROM measurements
+            WHERE file IS NULL AND timestamp < (NOW() - INTERVAL '7 DAYS');
+        "#).execute(&self.pool).await?;
+        Ok(())
     }
 }

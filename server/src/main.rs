@@ -103,12 +103,18 @@ async fn data(storage: State<'_, Arc<dyn MeasurementStorage>>, first: u64, last:
     Ok(Json(map))
 }
 
-async fn fetch_current_data_regularly(airq_ip: String, password: String) {
+async fn fetch_current_data_regularly(airq_ip: String, password: String, storage: Arc<dyn MeasurementStorage>) {
     let fetchdata = FetchData::new(&airq_ip, &password);
     loop {
         match AssertUnwindSafe(fetchdata.fetch_current()).catch_unwind().await {
             Ok(Err(e)) => eprintln!("Error fetching current data from airQ: {:?}", e),
-            Ok(Ok(data)) => *CURRENT_DATA.lock().unwrap() = Some(data),
+            Ok(Ok(data)) => {
+                match storage.store_manual_readout(&data).await {
+                    Ok(()) => (),
+                    Err(e) => eprintln!("couldn't store manual readout: {e:?}"),
+                }
+                *CURRENT_DATA.lock().unwrap() = Some(data);
+            },
             Err(e) => eprintln!("Panic fetching current data from airQ: {:?}", e),
         }
         time::sleep(Duration::from_secs(5)).await;
@@ -123,6 +129,16 @@ async fn fetch_data_regularly(airq_ip: String, password: String, storage: Arc<dy
             Err(e) => eprintln!("Panic fetching data from airQ: {:?}", e),
         }
         time::sleep(Duration::from_secs(2 * 60)).await;
+    }
+}
+async fn clean_manual_readouts_regularly(storage: Arc<dyn MeasurementStorage>) {
+    loop {
+        match storage.clean_manual_readouts().await {
+            Ok(()) => (),
+            Err(e) => eprintln!("cleaning manual readouts failed: {:?}", e),
+        }
+        // once per day
+        time::sleep(Duration::from_secs(24 * 60 * 60)).await;
     }
 }
 
@@ -141,8 +157,9 @@ async fn rocket() -> rocket::Rocket {
     println!("Using AirQ at {}", airq_ip);
     let password = std::env::var("AIRQ_PASSWORD").unwrap();
 
-    tokio::spawn(fetch_current_data_regularly(airq_ip.clone(), password.clone()));
+    tokio::spawn(fetch_current_data_regularly(airq_ip.clone(), password.clone(), Arc::clone(&storage)));
     tokio::spawn(fetch_data_regularly(airq_ip, password, Arc::clone(&storage)));
+    tokio::spawn(clean_manual_readouts_regularly(Arc::clone(&storage)));
 
     let rocket = rocket::ignite()
         .manage(storage);

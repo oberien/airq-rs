@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS files (
 );
 CREATE TABLE IF NOT EXISTS measurements (
     timestamp timestamp with time zone PRIMARY KEY NOT NULL,
-    file int4 NOT NULL,
+    -- null for manual readouts
+    file int4,
     health float8 NOT NULL,
     performance float8 NOT NULL,
     tvoc float8,
@@ -29,3 +30,4 @@ CREATE TABLE IF NOT EXISTS measurements (
     so2 float8,
     FOREIGN KEY (file) REFERENCES files (id)
 );
+CREATE INDEX IF NOT EXISTS measurements_manual_readout ON measurements (timestamp) WHERE file IS NULL;
