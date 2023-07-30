@@ -1,5 +1,9 @@
 # AirQ (Server)
 
+# Superseded by [iot2db](https://github.com/oberien/iot2db)
+
+---
+
 A server for displaying current AirQ Data, saving all data from the Airq in PostgreSQL,
 and displaying historical data as graphs.
 Postgres contains the data received from downloading the measurements stored within the airq, which equals one
@@ -9,7 +13,7 @@ Additionally, for the last 7 days, manual readouts every 5 seconds are stored as
 ## Setup
 
 0. Requirements:
-   * avahi-daemon
+   * avahi-daemon (arch: `avahi`, then enable and start `avahi-daemon.service`)
    * libavahi-client-dev
    * libclang
 1. Create and initialize a postgres database for airq data
