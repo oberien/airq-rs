@@ -2,6 +2,34 @@
 
 # Superseded by [iot2db](https://github.com/oberien/iot2db)
 
+Migration:
+* configure airq and iot2db as explained in the iot2db device examples
+* modify postgres from `psql` like this
+    ```sql
+    CREATE USER airq;
+    ALTER DATABASE airq OWNER TO airq;
+    \c airq
+    SET ROLE airq;
+    ALTER TABLE measurements OWNER TO airq;
+    REVOKE CONNECT ON DATABASE airq FROM public;
+    ALTER TABLE measurements DROP CONSTRAINT measurements_file_fkey;
+    DROP TABLE files;
+    DROP INDEX measurements_manual_readout;
+    ALTER TABLE measurements ADD COLUMN persistent bool NOT NULL GENERATED ALWAYS AS (file IS NOT NULL) STORED;
+    ALTER TABLE measurements ALTER COLUMN persistent DROP EXPRESSION;
+    -- use the create table command from the iot2db documentation with a different name
+    CREATE TABLE measurements2 (...) PARTITION BY ...;
+    BEGIN TRANSACTION;
+    LOCK TABLE measurements;
+    ALTER TABLE measurements RENAME TO measurements_old;
+    INSERT INTO measurements2 (
+        timestamp, persistent, health, performance, tvoc, humidity, humidity_abs, temperature, dewpt, sound, pressure, no2, co, co2, pm1, pm2_5, pm10, oxygen, o3, so2
+    ) SELECT timestamp, persistent, health, performance, tvoc, humidity, humidity_abs, temperature, dewpt, sound, pressure, no2, co, co2, pm1, pm2_5, pm10, oxygen, o3, so2 FROM measurements_old;
+    ALTER TABLE measurements2 RENAME TO measurements;
+    COMMIT;
+    DROP TABLE measurements_old;
+    ```
+
 ---
 
 A server for displaying current AirQ Data, saving all data from the Airq in PostgreSQL,
